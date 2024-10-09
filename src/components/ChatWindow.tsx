@@ -9,12 +9,12 @@ interface ChatWindowProps {
 }
 
 const ChatWindow = forwardRef<HTMLDivElement, ChatWindowProps>(({ messages, isLoading, preferences }, ref) => {
-  const messageStyle = preferences.messageDisplay === 'bubbles' ? 'rounded-lg' : 'border-b'
+  const messageStyle = preferences.messageDisplay === 'bubbles' ? 'rounded-2xl' : 'rounded-lg'
 
   return (
     <div 
       ref={ref} 
-      className={`flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-800 ${
+      className={`flex-1 overflow-y-auto p-4 space-y-2 bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-800 ${
         preferences.fontSize === 'large' ? 'text-lg' : 'text-base'
       }`}
     >

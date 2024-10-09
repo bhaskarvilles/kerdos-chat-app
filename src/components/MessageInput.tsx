@@ -23,13 +23,13 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage }) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type your message..."
-          className="flex-grow p-2 border border-gray-300 dark:border-gray-600 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+          className="flex-grow p-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none mr-2"
           rows={1}
           style={{ minHeight: '40px', maxHeight: '120px' }}
         />
         <button
           type="submit"
-          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-r-lg transition-colors duration-200 h-full"
+          className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full transition-colors duration-200 flex items-center justify-center w-10 h-10"
         >
           <Send className="w-5 h-5" />
         </button>

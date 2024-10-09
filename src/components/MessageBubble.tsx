@@ -4,6 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import remarkGfm from 'remark-gfm'
 import { Message } from '../types'
+import { User, Bot } from 'lucide-react'
 
 interface MessageBubbleProps {
   message: Message
@@ -11,22 +12,28 @@ interface MessageBubbleProps {
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, style }) => {
+  const isUser = message.sender === 'user'
+
   return (
     <div
       className={`flex ${
-        message.sender === 'user' ? 'justify-end' : 'justify-start'
-      } animate-fade-in`}
+        isUser ? 'justify-end' : 'justify-start'
+      } animate-fade-in items-end mb-4`}
     >
+      {!isUser && (
+        <div className="mr-2 mb-1">
+          <Bot className="w-8 h-8 text-green-500 dark:text-green-400" />
+        </div>
+      )}
       <div
         className={`max-w-[80%] px-4 py-2 ${style} ${
-          message.sender === 'user'
+          isUser
             ? 'bg-green-500 dark:bg-green-600 text-white'
             : 'bg-green-100 dark:bg-gray-700 text-green-800 dark:text-green-200'
         } shadow-md transition-all duration-200 ease-in-out hover:shadow-lg`}
       >
-        <p className="text-xs font-bold mb-1">{message.username}</p>
         <ReactMarkdown
-          className="mb-1 text-sm sm:text-base"
+          className="text-sm sm:text-base"
           remarkPlugins={[remarkGfm]}
           components={{
             code({node, inline, className, children, ...props}) {
@@ -50,10 +57,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, style }) => {
         >
           {message.content}
         </ReactMarkdown>
-        <span className="text-xs opacity-75 block">
-          {new Date(message.timestamp).toLocaleTimeString()}
-        </span>
       </div>
+      {isUser && (
+        <div className="ml-2 mb-1">
+          <User className="w-8 h-8 text-green-500 dark:text-green-400" />
+        </div>
+      )}
     </div>
   )
 }

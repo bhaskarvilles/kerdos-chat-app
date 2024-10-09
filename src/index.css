@@ -114,3 +114,45 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Mobile-specific styles */
+@media (max-width: 640px) {
+  .chat-interface {
+    height: calc(100vh - 56px); /* Adjust based on your header height */
+  }
+
+  .chat-window {
+    height: calc(100vh - 56px - 80px); /* Adjust based on your header and input heights */
+  }
+
+  .message-input {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+  }
+}
+
+/* Ensure the app takes up the full viewport height */
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Adjust for mobile keyboards */
+@media (max-height: 450px) {
+  .chat-interface {
+    height: 100%;
+  }
+
+  .chat-window {
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+
+  .message-input {
+    position: static;
+  }
+}

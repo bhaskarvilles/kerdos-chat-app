@@ -106,7 +106,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   }
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl w-full mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+    <div className="flex flex-col h-screen max-w-4xl w-full mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden sm:my-4 sm:mx-4 md:my-8 md:mx-8 lg:my-12 lg:mx-12">
       <div className="bg-gradient-to-r from-green-600 to-green-500 dark:from-green-700 dark:to-green-600 p-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-white flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

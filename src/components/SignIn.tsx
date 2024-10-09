@@ -71,7 +71,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
         </div>
         <button
           type="submit"
-          className="w-full bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 ease-in-out flex items-center justify-center"
+          className="w-full bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 ease-in-out flex items-center justify-center shadow-md hover:shadow-lg"
         >
           <LogIn className="w-4 h-4 mr-2" />
           Sign In
@@ -79,7 +79,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
       </form>
       <div className="p-4 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-200">
         <p className="text-sm" align="center">Current OTP: {currentOTP}</p>
-        <p classname="text-sm" align="center">For Premium Membership <b>kerdos.io</b></p>
+        <p className="text-sm" align="center">For Premium Membership <b>kerdos.io</b></p>
         <p className="text-xs mt-1" align="center">This OTP changes every 30 seconds and is valid for 24 hours after successful login.</p>
       </div>
       <div className="p-4 bg-green-50 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs" align="center">
