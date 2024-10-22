@@ -26,6 +26,6 @@ export async function getAIResponse(message: string): Promise<string> {
     return chatResponse
   } catch (error) {
     console.error('Error getting AI response:', error)
-    return 'Sorry, I encountered an error while processing your request.'
+    throw error // Re-throw the error to be caught in the ChatInterface
   }
 }

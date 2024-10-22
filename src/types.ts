@@ -23,7 +23,28 @@ export interface Chatbot {
   personality: string
 }
 
+export type Theme = 'light' | 'dark' | 'system'
+
 export interface UserPreferences {
-  fontSize: 'medium' | 'large'
+  fontSize: 'small' | 'medium' | 'large'
   messageDisplay: 'bubbles' | 'flat'
+  persistentChats: boolean
+  chatHistory: boolean
+  maxHistoryDays: number
+  theme: Theme
+  enableNotifications: boolean
+  soundNotifications: boolean
+  notificationVolume: number
+}
+
+export interface Chat {
+  id: string
+  name: string
+  messages: Message[]
+}
+
+export interface AccessibilitySettings {
+  fontSize: 'medium' | 'large'
+  highContrast: boolean
+  reducedMotion: boolean
 }

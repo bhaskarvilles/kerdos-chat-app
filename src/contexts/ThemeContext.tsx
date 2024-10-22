@@ -20,8 +20,21 @@ export const useTheme = () => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme')
-    return (savedTheme as Theme) || 'light'
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = () => {
+      setTheme(mediaQuery.matches ? 'dark' : 'light')
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('theme', theme)

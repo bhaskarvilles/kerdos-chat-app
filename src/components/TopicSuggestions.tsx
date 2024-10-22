@@ -7,25 +7,30 @@ interface TopicSuggestionsProps {
   onHideSuggestions: () => void
 }
 
-const TopicSuggestions: React.FC<TopicSuggestionsProps> = ({ suggestions, onSuggestionClick, onHideSuggestions }) => {
+const TopicSuggestions: React.FC<TopicSuggestionsProps> = ({
+  suggestions,
+  onSuggestionClick,
+  onHideSuggestions,
+}) => {
   if (suggestions.length === 0) return null
 
   return (
-    <div className="p-4 bg-green-50 dark:bg-gray-700 border-t border-green-200 dark:border-gray-600 relative">
-      <button
-        onClick={onHideSuggestions}
-        className="absolute top-2 right-2 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors duration-200"
-        aria-label="Hide suggestions"
-      >
-        <X size={20} />
-      </button>
-      <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">Suggested Topics:</h3>
+    <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg mb-4 shadow-md">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">Suggested Topics</h3>
+        <button
+          onClick={onHideSuggestions}
+          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <X size={18} />
+        </button>
+      </div>
       <div className="flex flex-wrap gap-2">
         {suggestions.map((suggestion, index) => (
           <button
             key={index}
             onClick={() => onSuggestionClick(suggestion)}
-            className="bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm hover:bg-green-300 dark:hover:bg-green-600 transition-colors duration-200 shadow-sm hover:shadow-md"
+            className="bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors duration-200"
           >
             {suggestion}
           </button>
@@ -35,4 +40,4 @@ const TopicSuggestions: React.FC<TopicSuggestionsProps> = ({ suggestions, onSugg
   )
 }
 
-export default TopicSuggestions
+export default React.memo(TopicSuggestions)
