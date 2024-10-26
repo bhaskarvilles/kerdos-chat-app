@@ -1,8 +1,14 @@
 [build]
-  command = "npm run build"
+  command = "npm ci && npm run build"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18.20.4"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.lifecycle]
+  onPreBuild = "rm -rf package-lock.json node_modules && npm install"
