@@ -1,14 +1,19 @@
 import React from 'react'
 
-interface ErrorMessageProps {
-  message: string
+interface ErrorProps {
+  error: { message: string }
+  onRetry: () => void
 }
 
-const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
+const ErrorMessage: React.FC<ErrorProps> = ({ error, onRetry }) => {
   return (
-    <div className="p-4 bg-red-100 text-red-700 border-l-4 border-red-500 animate-fade-in">
-      <p>{message}</p>
-    </div>
+    <ErrorContainer>
+      <ErrorIcon />
+      <ErrorText>{error.message}</ErrorText>
+      <RetryButton onClick={onRetry}>
+        Try Again
+      </RetryButton>
+    </ErrorContainer>
   )
 }
 

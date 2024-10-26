@@ -13,8 +13,8 @@ import { initializeOpenAI, getOpenAIResponse } from '../services/openAiService'
 import { checkUserPaidStatus, saveOpenAIKey, getOpenAIKey } from '../services/userService'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { CHAT_STORAGE_KEY, USER_PREFERENCES_KEY, DEFAULT_USER_PREFERENCES, NEW_CHAT_NAME } from '../constants'
-import LoadingIndicator from './LoadingIndicator'
 import Toast from './Toast'
+import Sidebar from './Sidebar'
 
 interface ChatInterfaceProps {
   user: User
@@ -36,9 +36,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const chatWindowRef = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
+  const [isInitializing, setIsInitializing] = useState(true)
 
   useEffect(() => {
-    checkUserPaidStatus(user.username).then(setIsPaidUser)
+    const initializeApp = async () => {
+      try {
+        await checkUserPaidStatus(user.username).then(setIsPaidUser)
+      } catch (error) {
+        console.error('Error initializing app:', error)
+        setToastMessage('Failed to initialize app settings')
+      } finally {
+        setIsInitializing(false)
+      }
+    }
+    
+    initializeApp()
   }, [user.username])
 
   useEffect(() => {
@@ -48,11 +60,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   }, [chats, activeChat])
 
   const handleSendMessage = useCallback(async (content: string) => {
+    const timestamp = new Date().toISOString(); // Use ISO string format
+    
     const newUserMessage: Message = {
-      id: Date.now(),
+      id: String(Date.now()),
       content,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
+      role: 'user',
+      timestamp,
       username: user.username,
     }
     
@@ -75,9 +89,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
       }
       
       const newAIMessage: Message = {
-        id: Date.now() + 1,
+        id: String(Date.now() + 1),
         content: aiResponse,
-        sender: 'ai',
+        role: 'assistant',
         timestamp: new Date().toISOString(),
         username: 'AI Assistant',
       }
@@ -124,18 +138,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   }, [])
 
   const handleExportChat = useCallback(() => {
-    const activeMessages = chats.find(chat => chat.id === activeChat)?.messages || []
-    const chatContent = activeMessages.map(msg => `${msg.username} (${msg.timestamp}): ${msg.content}`).join('\n\n')
-    const blob = new Blob([chatContent], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'chat_export.txt'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, [activeChat, chats])
+    let url: string | undefined;
+    try {
+      const activeMessages = chats.find(chat => chat.id === activeChat)?.messages || [];
+      const chatContent = activeMessages.map(msg => 
+        `${msg.username} (${new Date(msg.timestamp).toLocaleString()}): ${msg.content}`
+      ).join('\n\n');
+      
+      const blob = new Blob([chatContent], { type: 'text/plain' });
+      url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chat_export_${new Date().toISOString()}.txt`;
+      a.click();
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+    }
+  }, [activeChat, chats]);
 
   const handleUpdatePreferences = useCallback((newPreferences: Partial<UserPreferences>) => {
     setUserPreferences((prev: UserPreferences) => ({ ...prev, ...newPreferences }))
@@ -177,106 +197,114 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     initializeOpenAI(key)
   }, [])
 
-  const activeMessages = useMemo(() => chats.find((chat: Chat) => chat.id === activeChat)?.messages || [], [activeChat, chats])
+  // Memoize complex computations
+  const activeChatData = useMemo(() => ({
+    messages: chats.find((chat: Chat) => chat.id === activeChat)?.messages || [],
+    name: chats.find(chat => chat.id === activeChat)?.name || 'New Chat'
+  }), [activeChat, chats]);
+
+  // Add analytics tracking
+  interface ChatAnalytics {
+    averageResponseTime: number;
+    messageCount: number;
+    topicDistribution: Record<string, number>;
+    userSentiment: number;
+  }
+
+  // Show loading state
+  if (isInitializing) {
+    return <div className="flex h-screen items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+    </div>;
+  }
 
   return (
-    <div className="flex flex-col h-screen max-w-4xl w-full mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
-      <div className="bg-gradient-to-r from-green-600 to-green-500 dark:from-green-700 dark:to-green-600 p-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-white flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-          Kerdos AI Chat
-        </h1>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleExportChat}
-            className="p-2 rounded-full bg-green-400 hover:bg-green-300 dark:bg-green-500 dark:hover:bg-green-400 text-white transition-colors duration-200"
-            aria-label="Export chat"
-          >
-            <Download size={20} />
-          </button>
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full bg-green-400 hover:bg-green-300 dark:bg-green-500 dark:hover:bg-green-400 text-white transition-colors duration-200"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="p-2 rounded-full bg-green-400 hover:bg-green-300 dark:bg-green-500 dark:hover:bg-green-400 text-white transition-colors duration-200"
-            aria-label="User settings"
-          >
-            <Settings size={20} />
-          </button>
-          <button
-            onClick={onSignOut}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full transition-all duration-300 flex items-center"
-            style={{
-              transform: 'translateY(0)',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-            }}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </button>
-        </div>
-      </div>
-      <ChatTabs
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <Sidebar
         chats={chats}
         activeChat={activeChat}
-        onChatChange={handleChatChange}
+        onChatSelect={handleChatChange}
         onNewChat={handleNewChat}
-        onCloseChat={handleCloseChat}
+        onDeleteChat={handleCloseChat}
+        onSignOut={onSignOut}
+        onExportChat={handleExportChat}
+        onToggleTheme={toggleTheme}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        theme={theme}
+        userPreferences={userPreferences}
+        className="shadow-xl"
       />
-      <div className="flex-grow flex flex-col overflow-hidden relative">
-        <ChatWindow 
-          ref={chatWindowRef} 
-          messages={activeMessages} 
-          isLoading={isLoading} 
-          preferences={userPreferences}
-        />
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <LoadingIndicator />
+      
+      <div className="flex-1 flex flex-col transition-all duration-300 overflow-hidden">
+        {/* Header - Updated styling */}
+        <div className="h-16 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              {activeChatData.name}
+            </h1>
+            {isPaidUser && (
+              <span className="px-2 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
+                Pro
+              </span>
+            )}
           </div>
-        )}
-        <TopicSuggestions 
-          suggestions={suggestions} 
-          onSuggestionClick={handleSuggestionClick} 
-          onHideSuggestions={handleHideSuggestions}
-        />
-        <MessageInput onSendMessage={handleSendMessage} />
+          {error && (
+            <div className="flex items-center px-4 py-2 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-800">
+              <AlertCircle size={16} className="mr-2 text-red-500" />
+              <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Main Content - Updated styling */}
+        <div className="flex-1 flex flex-col bg-white/50 dark:bg-gray-800/50">
+          <div className="flex-1 overflow-hidden">
+            <ChatWindow
+              ref={chatWindowRef}
+              messages={activeChatData.messages}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              preferences={userPreferences}
+              className="h-full backdrop-blur-sm"
+            />
+          </div>
+          
+          <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md">
+            <TopicSuggestions 
+              suggestions={suggestions} 
+              onSuggestionClick={handleSuggestionClick} 
+              onHideSuggestions={handleHideSuggestions}
+              className="px-4 py-2"
+            />
+            <div className="px-4 pb-4">
+              <MessageInput 
+                onSendMessage={handleSendMessage}
+                className="bg-white dark:bg-gray-900 shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50"
+              />
+            </div>
+          </div>
+        </div>
       </div>
-      {isCustomizing && (
-        <ChatbotCustomizer
-          onClose={() => setIsCustomizing(false)}
-          onCreateChatbot={handleCreateChatbot}
-        />
-      )}
+
+      {/* Modals - Updated styling */}
       {isSettingsOpen && (
-        <UserSettings
-          preferences={userPreferences}
-          onUpdatePreferences={handleUpdatePreferences}
-          onClose={() => setIsSettingsOpen(false)}
-          isPaidUser={isPaidUser}
-          onOpenAIKeySubmit={handleOpenAIKeySubmit}
-        />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+          <UserSettings
+            preferences={userPreferences}
+            onUpdate={handleUpdatePreferences}
+            onClose={() => setIsSettingsOpen(false)}
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl"
+          />
+        </div>
       )}
+
+      {/* Toast Messages - Updated styling */}
       {toastMessage && (
-        <Toast 
-          message={toastMessage} 
-          type="error" 
-          onClose={() => setToastMessage(null)} 
+        <Toast
+          message={toastMessage}
+          onClose={() => setToastMessage(null)}
+          type="error"
+          className="animate-slide-up"
         />
       )}
     </div>

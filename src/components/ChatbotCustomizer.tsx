@@ -6,6 +6,24 @@ interface ChatbotCustomizerProps {
   onCreateChatbot: (name: string, personality: string) => void
 }
 
+// Add theme customization
+interface ThemeOptions {
+  darkMode: boolean;
+  fontSize: 'small' | 'medium' | 'large';
+  bubbleStyle: 'round' | 'square';
+  fontFamily: string;
+}
+
+// Add more customization options
+interface CustomizationOptions {
+  theme: 'light' | 'dark' | 'system';
+  fontSize: number;
+  messageSpacing: number;
+  fontFamily: string;
+  accentColor: string;
+  messageAlignment: 'left' | 'right';
+}
+
 const ChatbotCustomizer: React.FC<ChatbotCustomizerProps> = ({ onClose, onCreateChatbot }) => {
   const [name, setName] = useState('')
   const [personality, setPersonality] = useState('')

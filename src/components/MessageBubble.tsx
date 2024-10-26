@@ -1,82 +1,106 @@
 import React from 'react'
+import { Message } from '../types'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import remarkGfm from 'remark-gfm'
-import { Message } from '../types'
-import { User, Bot } from 'lucide-react'
+import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 interface MessageBubbleProps {
-  message: Message
-  style: string
+  message: Message;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, style }) => {
-  const isUser = message.sender === 'user'
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+  if (!message) {
+    console.warn('MessageBubble: message prop is undefined');
+    return null;
+  }
+
+  const isUser = message.role === 'user';
 
   return (
-    <div
-      className={`flex ${
-        isUser ? 'justify-end' : 'justify-start'
-      } animate-fade-in items-end mb-4`}
-    >
-      {!isUser && (
-        <div className="mr-2 mb-1">
-          <Bot className="w-8 h-8 text-green-500 dark:text-green-400" />
-        </div>
-      )}
-      <div
-        className={`max-w-[80%] px-4 py-2 ${style} ${
-          isUser
-            ? 'bg-green-500 dark:bg-green-600 text-white'
-            : 'bg-green-100 dark:bg-gray-700 text-green-800 dark:text-green-200'
-        } shadow-md transition-all duration-200 ease-in-out hover:shadow-lg rounded-lg`}
-      >
-        <ReactMarkdown
-          className="text-sm sm:text-base prose dark:prose-invert max-w-none"
-          remarkPlugins={[remarkGfm]}
-          components={{
-            code({ node, inline, className, children, ...props }) {
-              const match = /language-(\w+)/.exec(className || '')
-              return !inline && match ? (
-                <div className="relative">
-                  <SyntaxHighlighter
-                    style={tomorrow}
-                    language={match[1]}
-                    PreTag="div"
-                    {...props}
-                    className="rounded-md !bg-gray-100 dark:!bg-gray-900"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                </div>
-              ) : (
-                <code className={`${className} bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded`} {...props}>
-                  {children}
-                </code>
-              )
-            },
-            h1: ({ node, ...props }) => <h1 className="text-xl font-bold mt-3 mb-2" {...props} />,
-            h2: ({ node, ...props }) => <h2 className="text-lg font-bold mt-2 mb-1" {...props} />,
-            h3: ({ node, ...props }) => <h3 className="text-base font-bold mt-2 mb-1" {...props} />,
-            p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-            ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
-            ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
-            blockquote: ({ node, ...props }) => (
-              <blockquote className="border-l-4 border-green-500 dark:border-green-400 pl-3 py-1 italic" {...props} />
-            ),
-          }}
-        >
-          {message.content}
-        </ReactMarkdown>
+    <div className={`flex flex-col mb-4 ${isUser ? 'items-end' : 'items-start'}`}>
+      {/* Username and Timestamp */}
+      <div className={`text-xs text-gray-500 dark:text-gray-400 mb-1 ${isUser ? 'text-right' : 'text-left'}`}>
+        {message.username} • {new Date(message.timestamp).toLocaleTimeString()}
       </div>
+      
+      {/* Message Bubble */}
+      <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm
+        ${isUser 
+          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-br-none' 
+          : 'bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-bl-none border border-gray-200/50 dark:border-gray-700/50'
+        }`}
+      >
+        <div className={`text-sm ${
+          isUser 
+            ? 'text-white' 
+            : 'text-gray-800 dark:text-gray-200'
+        }`}>
+          {isUser ? (
+            message.content
+          ) : (
+            <ReactMarkdown
+              components={{
+                code({node, inline, className, children, ...props}) {
+                  const match = /language-(\w+)/.exec(className || '')
+                  return !inline && match ? (
+                    <SyntaxHighlighter
+                      style={atomDark}
+                      language={match[1]}
+                      PreTag="div"
+                      className="rounded-md my-2"
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className="bg-gray-800/20 dark:bg-gray-900/50 rounded px-1" {...props}>
+                      {children}
+                    </code>
+                  )
+                },
+                // Style other markdown elements
+                h1: ({children}) => <h1 className="text-xl font-bold my-4">{children}</h1>,
+                h2: ({children}) => <h2 className="text-lg font-bold my-3">{children}</h2>,
+                h3: ({children}) => <h3 className="text-md font-bold my-2">{children}</h3>,
+                p: ({children}) => <p className="my-2">{children}</p>,
+                ul: ({children}) => <ul className="list-disc list-inside my-2">{children}</ul>,
+                ol: ({children}) => <ol className="list-decimal list-inside my-2">{children}</ol>,
+                li: ({children}) => <li className="my-1">{children}</li>,
+                blockquote: ({children}) => (
+                  <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 my-2 italic">
+                    {children}
+                  </blockquote>
+                ),
+                a: ({children, href}) => (
+                  <a href={href} className="text-blue-500 hover:underline" target="_blank" rel="noopener noreferrer">
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {message.content || ''}
+            </ReactMarkdown>
+          )}
+        </div>
+      </div>
+      
+      {/* Message Status - Only for user messages */}
       {isUser && (
-        <div className="ml-2 mb-1">
-          <User className="w-8 h-8 text-green-500 dark:text-green-400" />
+        <div className="flex items-center space-x-1 mt-1">
+          <span className="text-xs text-gray-400 dark:text-gray-500">Sent</span>
+          <svg 
+            className="w-3 h-3 text-indigo-500 dark:text-purple-400" 
+            fill="none" 
+            strokeWidth="2" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 13l4 4L19 7" />
+          </svg>
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default MessageBubble
+export default MessageBubble;

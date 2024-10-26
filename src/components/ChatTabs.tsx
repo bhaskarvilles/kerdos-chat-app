@@ -95,4 +95,20 @@ const NewChatButton: React.FC<{ onNewChat: () => void }> = ({ onNewChat }) => (
   </button>
 )
 
+// Add AI model selection
+interface AIModel {
+  id: string;
+  name: string;
+  capabilities: string[];
+  contextWindow: number;
+  costPerToken: number;
+}
+
+// Add conversation context management
+interface ConversationContext {
+  relevantDocs: string[];
+  previousSummary: string;
+  userPreferences: Record<string, any>;
+}
+
 export default ChatTabs
