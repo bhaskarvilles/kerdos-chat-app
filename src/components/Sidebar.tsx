@@ -1,24 +1,6 @@
-import React, { useState } from 'react';
-import { Chat, UserPreferences } from '../types';
-import { 
-  Settings, Download, LogOut, Sun, Moon, Plus, 
-  MessageSquare, Trash2, ChevronLeft, ChevronRight,
-  MessageCircle, Search, Star, Clock
-} from 'lucide-react';
-
-interface SidebarProps {
-  chats: Chat[];
-  activeChat: string;
-  onChatSelect: (chatId: string) => void;
-  onNewChat: () => void;
-  onDeleteChat: (chatId: string) => void;
-  onSignOut: () => void;
-  onExportChat: () => void;
-  onToggleTheme: () => void;
-  onOpenSettings: () => void;
-  theme: 'light' | 'dark' | 'system';
-  userPreferences: UserPreferences;
-}
+import React from 'react';
+import { SidebarProps } from '../types';
+import { LogOut, Settings, Sun, Moon, Download, Trash2, MessageSquarePlus, ChevronLeft, ChevronRight, User, MessageCircle } from 'lucide-react';
 
 const Sidebar: React.FC<SidebarProps> = ({
   chats,
@@ -31,183 +13,170 @@ const Sidebar: React.FC<SidebarProps> = ({
   onToggleTheme,
   onOpenSettings,
   theme,
+  isCollapsed = false,
+  onToggleCollapse,
+  className = '',
   userPreferences,
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [view, setView] = useState<'all' | 'starred' | 'recent'>('all');
-
-  const sidebarWidth = isCollapsed ? 'w-16' : 'w-72';
-  const showText = !isCollapsed;
-
-  const filteredChats = chats.filter(chat => 
-    chat.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const renderQuickActions = () => (
-    <div className={`flex ${showText ? 'flex-row justify-around' : 'flex-col items-center space-y-4'} py-4`}>
-      <button
-        onClick={() => setView('all')}
-        className={`p-2 rounded-lg transition-colors duration-200 ${
-          view === 'all' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-        }`}
-        title="All Chats"
-      >
-        <MessageCircle size={18} />
-      </button>
-      <button
-        onClick={() => setView('starred')}
-        className={`p-2 rounded-lg transition-colors duration-200 ${
-          view === 'starred' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-        }`}
-        title="Starred"
-      >
-        <Star size={18} />
-      </button>
-      <button
-        onClick={() => setView('recent')}
-        className={`p-2 rounded-lg transition-colors duration-200 ${
-          view === 'recent' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-        }`}
-        title="Recent"
-      >
-        <Clock size={18} />
-      </button>
-    </div>
-  );
-
   return (
-    <div
-      className={`${sidebarWidth} h-full bg-gray-900 text-white flex flex-col shadow-xl
-                  transition-all duration-300 ease-in-out relative group`}
+    <div 
+      className={`flex flex-col h-full bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-700/50 
+        transition-[width] duration-300 ease-in-out ${className}`}
+      style={{ width: isCollapsed ? '5rem' : '20rem' }}
     >
-      {/* Collapse Toggle Button */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-6 bg-gray-900 text-gray-400 hover:text-white
-                   rounded-full p-1 shadow-lg z-50 transition-transform duration-300"
-      >
-        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-      </button>
+      {/* Enhanced Header with User Profile */}
+      <div className="flex flex-col border-b border-gray-200/50 dark:border-gray-700/50">
+        <div className="flex items-center justify-between p-4">
+          {!isCollapsed && (
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+                <User className="w-6 h-6 text-white/90 stroke-[1.5]" />
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-transparent bg-clip-text">
+                Kerdos AI Chat
+              </h1>
+            </div>
+          )}
+          <button
+            onClick={onToggleCollapse}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 
+              hover:scale-105 active:scale-95"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? 
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300 stroke-[1.5]" /> : 
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 stroke-[1.5]" />
+            }
+          </button>
+        </div>
+      </div>
 
-      {/* Header Section */}
-      <div className="p-4 border-b border-gray-800">
+      {/* Enhanced New Chat Button */}
+      <div className="p-3">
         <button
           onClick={onNewChat}
-          className={`w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 
-                     text-white font-medium py-2.5 rounded-lg flex items-center justify-center
-                     transition-all duration-200 shadow-lg hover:shadow-blue-500/25
-                     ${!showText ? 'px-2' : 'px-4'}`}
-          title="New Chat"
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 
+            bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 
+            text-white rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-98
+            shadow-md hover:shadow-lg"
         >
-          <Plus size={18} className={showText ? 'mr-2' : ''} />
-          {showText && 'New Chat'}
+          <MessageSquarePlus className="w-5 h-5 stroke-[1.5]" />
+          {!isCollapsed && <span className="font-medium">New Chat</span>}
         </button>
       </div>
 
-      {/* Quick Actions */}
-      {renderQuickActions()}
-      
-      {/* Search Bar - Only show in expanded state */}
-      {showText && (
-        <div className="px-4 mb-2">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search chats..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-800 text-white rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <Search size={16} className="absolute left-3 top-2.5 text-gray-400" />
-          </div>
-        </div>
-      )}
-      
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-900">
-        {filteredChats.map((chat) => (
-          <div
-            key={chat.id}
-            className={`group p-3 mx-2 my-1 cursor-pointer rounded-lg flex justify-between items-center
-                       transition-all duration-200 hover:bg-gray-800
-                       ${activeChat === chat.id ? 'bg-gray-800 shadow-md' : ''}`}
-            onClick={() => onChatSelect(chat.id)}
-            title={!showText ? chat.name : undefined}
-          >
-            <div className="flex items-center space-x-3 truncate flex-1">
-              <MessageSquare size={18} className="text-gray-400 flex-shrink-0" />
-              {showText && (
-                <span className="text-sm font-medium truncate">
-                  {chat.name || 'New Chat'}
+      {/* Enhanced Chat List */}
+      <div className="flex-1 overflow-y-auto px-3 custom-scrollbar">
+        <div className="space-y-1">
+          {chats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer 
+                transition-all duration-200 ${
+                chat.id === activeChat
+                  ? 'bg-gradient-to-r from-violet-500/90 to-fuchsia-500/90 text-white shadow-md'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800/70'
+              }`}
+              onClick={() => onChatSelect(chat.id)}
+            >
+              <div className="flex items-center space-x-3 min-w-0">
+                <MessageCircle className={`w-4 h-4 flex-shrink-0 stroke-[1.5] ${
+                  chat.id === activeChat ? 'text-white' : 'text-gray-400 dark:text-gray-500'
+                }`} />
+                <span className={`truncate ${isCollapsed ? 'w-0' : 'w-full'} ${
+                  chat.id === activeChat ? 'text-white font-medium' : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  {!isCollapsed && chat.name}
                 </span>
+              </div>
+              {!isCollapsed && chat.id === activeChat && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteChat(chat.id);
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/20 rounded-lg 
+                    transition-all duration-200 active:scale-95"
+                  title="Delete chat"
+                >
+                  <Trash2 className="w-4 h-4 text-white stroke-[1.5]" />
+                </button>
               )}
             </div>
-            {showText && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteChat(chat.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 ml-2 p-1 rounded-md
-                           text-gray-400 hover:text-red-400 hover:bg-gray-700
-                           transition-all duration-200"
-              >
-                <Trash2 size={16} />
-              </button>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="p-4 border-t border-gray-800 space-y-2 bg-gray-900/50 backdrop-blur-sm">
-        <div className={`grid ${showText ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-3`}>
+      {/* Enhanced Footer Actions */}
+      <div className="p-3 border-t border-gray-200/50 dark:border-gray-700/50">
+        <div className={`flex ${isCollapsed ? 'flex-col space-y-2' : 'items-center justify-evenly'}`}>
           <button
             onClick={onToggleTheme}
-            className="flex items-center justify-center p-2 rounded-lg
-                     bg-gray-800 hover:bg-gray-700 transition-colors duration-200"
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
+              hover:scale-105 active:scale-95"
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            {theme === 'dark' ? 
+              <Sun className="w-5 h-5 text-amber-500 stroke-[1.5]" /> : 
+              <Moon className="w-5 h-5 text-blue-500 stroke-[1.5]" />
+            }
           </button>
-          {showText && (
-            <button
-              onClick={onExportChat}
-              className="flex items-center justify-center p-2 rounded-lg
-                       bg-gray-800 hover:bg-gray-700 transition-colors duration-200"
-              title="Export Chat"
-            >
-              <Download size={18} />
-            </button>
-          )}
+          
+          <button
+            onClick={onExportChat}
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
+              hover:scale-105 active:scale-95"
+            title="Export Chat"
+          >
+            <Download className="w-5 h-5 text-emerald-500 dark:text-emerald-400 stroke-[1.5]" />
+          </button>
+          
+          <button
+            onClick={onOpenSettings}
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
+              hover:scale-105 active:scale-95"
+            title="Settings"
+          >
+            <Settings className="w-5 h-5 text-violet-500 dark:text-violet-400 stroke-[1.5]" />
+          </button>
+          
+          <button
+            onClick={onSignOut}
+            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
+              hover:scale-105 active:scale-95"
+            title="Sign Out"
+          >
+            <LogOut className="w-5 h-5 text-red-500 dark:text-red-400 stroke-[1.5]" />
+          </button>
         </div>
-
-        <button
-          onClick={onOpenSettings}
-          className={`w-full p-2.5 rounded-lg flex items-center justify-center
-                   bg-gray-800 hover:bg-gray-700 transition-colors duration-200
-                   ${!showText ? 'px-2' : ''}`}
-          title="Settings"
-        >
-          <Settings size={18} className={showText ? 'mr-2' : ''} />
-          {showText && <span className="font-medium">Settings</span>}
-        </button>
-
-        <button
-          onClick={onSignOut}
-          className={`w-full p-2.5 rounded-lg flex items-center justify-center
-                   bg-red-500/10 text-red-500 hover:bg-red-500/20
-                   transition-colors duration-200
-                   ${!showText ? 'px-2' : ''}`}
-          title="Sign Out"
-        >
-          <LogOut size={18} className={showText ? 'mr-2' : ''} />
-          {showText && <span className="font-medium">Sign Out</span>}
-        </button>
       </div>
     </div>
   );
 };
+
+// Add custom scrollbar styles to your CSS
+const styles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 20px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(156, 163, 175, 0.7);
+  }
+`;
+
+// Add style tag to document
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
 
 export default Sidebar;

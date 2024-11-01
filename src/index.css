@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .chat-container {
+    @apply flex h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 
+           dark:from-gray-900 dark:via-gray-800 dark:to-gray-900;
+  }
+
+  .chat-header {
+    @apply h-16 flex items-center justify-between px-6 
+           bg-white/80 dark:bg-gray-800/90 backdrop-blur-md 
+           border-b border-gray-200/50 dark:border-gray-700/50 
+           shadow-sm transition-colors duration-200;
+  }
+
+  .chat-content {
+    @apply flex-1 flex flex-col bg-white/50 dark:bg-gray-800/50 
+           transition-colors duration-200;
+  }
+
+  .message-input-container {
+    @apply border-t border-gray-200/50 dark:border-gray-700/50 
+           bg-white/80 dark:bg-gray-800/90 backdrop-blur-md 
+           transition-colors duration-200;
+  }
+
+  .animate-slide-up {
+    @apply transform transition-all duration-300 ease-out;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

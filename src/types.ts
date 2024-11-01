@@ -50,34 +50,54 @@ export interface AccessibilitySettings {
 }
 
 // Add proper component prop interfaces
-interface SidebarProps {
-  // ... existing props
-  className?: string; // Add optional className prop
+export interface SidebarProps {
+  chats: Chat[];
+  activeChat: string;
+  onChatSelect: (chatId: string) => void;
+  onNewChat: () => void;
+  onDeleteChat: (chatId: string) => void;
+  onSignOut: () => void;
+  onExportChat: () => void;
+  onToggleTheme: () => void;
+  onOpenSettings: () => void;
+  theme: 'light' | 'dark';
+  userPreferences: UserPreferences;
+  className?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  isMobile?: boolean;
 }
 
-interface ChatWindowProps {
-  // ... existing props
+export interface ChatWindowProps {
+  messages: Message[];
+  onSendMessage: (content: string) => Promise<void>;
+  isLoading: boolean;
+  preferences: UserPreferences;
   className?: string;
 }
 
-interface MessageInputProps {
-  // ... existing props
+export interface TopicSuggestionsProps {
+  suggestions: string[];
+  onSuggestionClick: (suggestion: string) => void;
+  onHideSuggestions: () => void;
   className?: string;
 }
 
-interface TopicSuggestionsProps {
-  // ... existing props
+export interface MessageInputProps {
+  onSendMessage: (content: string) => Promise<void>;
   className?: string;
 }
 
-interface UserSettingsProps {
+export interface UserSettingsProps {
   preferences: UserPreferences;
   onUpdate: (newPreferences: Partial<UserPreferences>) => void;
   onClose: () => void;
   className?: string;
 }
 
-interface ToastProps {
-  // ... existing props
+export interface ToastProps {
+  message: string;
+  onClose: () => void;
+  type: 'error' | 'success' | 'info';
   className?: string;
 }

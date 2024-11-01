@@ -2,10 +2,8 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import ChatWindow from './ChatWindow'
 import MessageInput from './MessageInput'
 import TopicSuggestions from './TopicSuggestions'
-import ChatbotCustomizer from './ChatbotCustomizer'
 import UserSettings from './UserSettings'
-import ChatTabs from './ChatTabs'
-import { Message, User, Chatbot, UserPreferences, Chat } from '../types'
+import { Message, User, Chat, UserPreferences, Chatbot } from '../types'
 import { LogOut, Settings, Sun, Moon, Download, AlertCircle } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { getAIResponse } from '../services/aiChatService'
@@ -17,8 +15,8 @@ import Toast from './Toast'
 import Sidebar from './Sidebar'
 
 interface ChatInterfaceProps {
-  user: User
-  onSignOut: () => void
+  user: User;
+  onSignOut: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
@@ -37,6 +35,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   const chatWindowRef = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
   const [isInitializing, setIsInitializing] = useState(true)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -203,19 +202,16 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     name: chats.find(chat => chat.id === activeChat)?.name || 'New Chat'
   }), [activeChat, chats]);
 
-  // Add analytics tracking
-  interface ChatAnalytics {
-    averageResponseTime: number;
-    messageCount: number;
-    topicDistribution: Record<string, number>;
-    userSentiment: number;
-  }
-
   // Show loading state
   if (isInitializing) {
-    return <div className="flex h-screen items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
-    </div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+          <p className="text-gray-600 dark:text-gray-300">Initializing...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -232,12 +228,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         theme={theme}
         userPreferences={userPreferences}
-        className="shadow-xl"
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       
-      <div className="flex-1 flex flex-col transition-all duration-300 overflow-hidden">
-        {/* Header - Updated styling */}
-        <div className="h-16 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="h-16 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50">
           <div className="flex items-center space-x-4">
             <h1 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               {activeChatData.name}
@@ -256,49 +253,49 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
           )}
         </div>
 
-        {/* Main Content - Updated styling */}
-        <div className="flex-1 flex flex-col bg-white/50 dark:bg-gray-800/50">
-          <div className="flex-1 overflow-hidden">
-            <ChatWindow
-              ref={chatWindowRef}
-              messages={activeChatData.messages}
+        {/* Main Chat Area */}
+        <div className="flex-1 overflow-hidden bg-white/50 dark:bg-gray-800/50">
+          <ChatWindow
+            ref={chatWindowRef}
+            messages={activeChatData.messages}
+            onSendMessage={handleSendMessage}
+            isLoading={isLoading}
+            preferences={userPreferences}
+            className="h-full backdrop-blur-sm"
+          />
+        </div>
+
+        {/* Message Input Area */}
+        <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md">
+          <TopicSuggestions
+            suggestions={suggestions}
+            onSuggestionClick={handleSuggestionClick}
+            onHideSuggestions={handleHideSuggestions}
+            className="px-4 py-2"
+          />
+          <div className="px-4 pb-4">
+            <MessageInput
               onSendMessage={handleSendMessage}
               isLoading={isLoading}
-              preferences={userPreferences}
-              className="h-full backdrop-blur-sm"
+              className="bg-white dark:bg-gray-900 shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50"
             />
-          </div>
-          
-          <div className="border-t border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-800/90 backdrop-blur-md">
-            <TopicSuggestions 
-              suggestions={suggestions} 
-              onSuggestionClick={handleSuggestionClick} 
-              onHideSuggestions={handleHideSuggestions}
-              className="px-4 py-2"
-            />
-            <div className="px-4 pb-4">
-              <MessageInput 
-                onSendMessage={handleSendMessage}
-                className="bg-white dark:bg-gray-900 shadow-lg rounded-xl border border-gray-200/50 dark:border-gray-700/50"
-              />
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Modals - Updated styling */}
+      {/* Settings Modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
           <UserSettings
             preferences={userPreferences}
             onUpdate={handleUpdatePreferences}
             onClose={() => setIsSettingsOpen(false)}
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl"
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full mx-4"
           />
         </div>
       )}
 
-      {/* Toast Messages - Updated styling */}
+      {/* Toast Messages */}
       {toastMessage && (
         <Toast
           message={toastMessage}
@@ -308,7 +305,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
         />
       )}
     </div>
-  )
-}
+  );
+};
 
-export default React.memo(ChatInterface)
+export default React.memo(ChatInterface);
