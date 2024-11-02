@@ -1,162 +1,223 @@
 import React, { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { X, Moon, Sun, Save, Eye, EyeOff } from 'lucide-react'
 import { UserPreferences } from '../types'
 
 interface UserSettingsProps {
-  preferences: UserPreferences
-  onUpdatePreferences: (newPreferences: Partial<UserPreferences>) => void
-  onClose: () => void
-  isPaidUser: boolean
-  onOpenAIKeySubmit: (key: string) => void
+  preferences: UserPreferences;
+  onUpdatePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  onClose: () => void;
+  isPaidUser?: boolean;
+  onOpenAIKeySubmit?: (key: string) => void;
+  className?: string;
 }
 
 const UserSettings: React.FC<UserSettingsProps> = ({ 
   preferences, 
   onUpdatePreferences, 
   onClose, 
-  isPaidUser,
-  onOpenAIKeySubmit
+  isPaidUser = false,
+  onOpenAIKeySubmit,
+  className = ''
 }) => {
   const [openAIKey, setOpenAIKey] = useState('')
+  const [showAPIKey, setShowAPIKey] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [localPreferences, setLocalPreferences] = useState<UserPreferences>(preferences)
 
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (isDirty) {
+          if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+            onClose();
+          }
+        } else {
+          onClose();
+        }
+      }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [onClose])
+  }, [onClose, isDirty])
 
-  const handleOpenAIKeySubmit = (e: React.FormEvent) => {
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (openAIKey.trim()) {
+    onUpdatePreferences(localPreferences)
+    if (openAIKey.trim() && onOpenAIKeySubmit) {
       onOpenAIKeySubmit(openAIKey.trim())
-      setOpenAIKey('')
     }
+    setIsDirty(false)
+  }
+
+  // Handle preference changes
+  const handlePreferenceChange = <K extends keyof UserPreferences>(
+    key: K,
+    value: UserPreferences[K]
+  ) => {
+    setLocalPreferences(prev => ({ ...prev, [key]: value }))
+    setIsDirty(true)
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-green-800 dark:text-green-200">User Settings</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <X className="w-6 h-6" />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <form 
+        onSubmit={handleSubmit}
+        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto ${className}`}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-transparent bg-clip-text">
+            Settings
+          </h2>
+          <button 
+            type="button"
+            onClick={() => isDirty ? window.confirm('Discard changes?') && onClose() : onClose()}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="fontSize" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+
+        {/* Settings Content */}
+        <div className="p-6 space-y-6">
+          {/* Theme Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Theme
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handlePreferenceChange('theme', 'light')}
+                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${
+                  localPreferences.theme === 'light'
+                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <Sun className="w-5 h-5 text-amber-500" />
+                <span>Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePreferenceChange('theme', 'dark')}
+                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${
+                  localPreferences.theme === 'dark'
+                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <Moon className="w-5 h-5 text-blue-500" />
+                <span>Dark</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Font Size */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Font Size
             </label>
             <select
-              id="fontSize"
-              value={preferences.fontSize}
-              onChange={(e) => onUpdatePreferences({ fontSize: e.target.value as 'small' | 'medium' | 'large' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              value={localPreferences.fontSize}
+              onChange={(e) => handlePreferenceChange('fontSize', e.target.value as 'small' | 'medium' | 'large')}
+              className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 
+                bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
             >
               <option value="small">Small</option>
               <option value="medium">Medium</option>
               <option value="large">Large</option>
             </select>
           </div>
-          <div>
-            <label htmlFor="messageDisplay" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Message Display
-            </label>
-            <select
-              id="messageDisplay"
-              value={preferences.messageDisplay}
-              onChange={(e) => onUpdatePreferences({ messageDisplay: e.target.value as 'bubbles' | 'flat' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="bubbles">Bubbles</option>
-              <option value="flat">Flat</option>
-            </select>
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="persistentChats"
-              checked={preferences.persistentChats}
-              onChange={(e) => onUpdatePreferences({ persistentChats: e.target.checked })}
-              className="mr-2"
-            />
-            <label htmlFor="persistentChats" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Enable Persistent Chats
-            </label>
-          </div>
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="chatHistory"
-              checked={preferences.chatHistory}
-              onChange={(e) => onUpdatePreferences({ chatHistory: e.target.checked })}
-              className="mr-2"
-            />
-            <label htmlFor="chatHistory" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Store Chat History
-            </label>
-          </div>
-          {preferences.chatHistory && (
-            <div>
-              <label htmlFor="maxHistoryDays" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Max History Days
+
+          {/* Chat History Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Store Chat History
               </label>
-              <input
-                type="number"
-                id="maxHistoryDays"
-                value={preferences.maxHistoryDays}
-                onChange={(e) => onUpdatePreferences({ maxHistoryDays: parseInt(e.target.value) })}
-                min="1"
-                max="30"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              />
+              <button
+                type="button"
+                onClick={() => handlePreferenceChange('chatHistory', !localPreferences.chatHistory)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  localPreferences.chatHistory ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    localPreferences.chatHistory ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
-          )}
-          <div>
-            <label htmlFor="theme" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Theme
-            </label>
-            <select
-              id="theme"
-              value={preferences.theme}
-              onChange={(e) => onUpdatePreferences({ theme: e.target.value as 'light' | 'dark' | 'system' })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-              <option value="system">System</option>
-            </select>
+
+            {localPreferences.chatHistory && (
+              <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  History Duration (days)
+                </label>
+                <input
+                  type="number"
+                  value={localPreferences.maxHistoryDays}
+                  onChange={(e) => handlePreferenceChange('maxHistoryDays', Math.max(1, Math.min(30, parseInt(e.target.value))))}
+                  min="1"
+                  max="30"
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 
+                    bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
+                />
+              </div>
+            )}
           </div>
-          {isPaidUser && (
-            <div>
-              <label htmlFor="openAIKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+
+          {/* OpenAI API Key (Pro Users Only) */}
+          {isPaidUser && onOpenAIKeySubmit && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 OpenAI API Key
               </label>
-              <form onSubmit={handleOpenAIKeySubmit} className="flex">
+              <div className="relative">
                 <input
-                  type="password"
-                  id="openAIKey"
+                  type={showAPIKey ? 'text' : 'password'}
                   value={openAIKey}
                   onChange={(e) => setOpenAIKey(e.target.value)}
                   placeholder="Enter your OpenAI API key"
-                  className="flex-grow px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="w-full px-4 py-2 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 
+                    bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
                 />
                 <button
-                  type="submit"
-                  className="bg-green-500 text-white px-4 py-2 rounded-r-md hover:bg-green-600 transition-colors duration-200"
+                  type="button"
+                  onClick={() => setShowAPIKey(!showAPIKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                 >
-                  Save
+                  {showAPIKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
-              </form>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Your API key will be stored securely and will expire after 1 hour.
               </p>
             </div>
           )}
         </div>
-      </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="submit"
+            disabled={!isDirty && !openAIKey}
+            className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-xl 
+              transition-all duration-200 ${
+              isDirty || openAIKey
+                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Save className="w-5 h-5" />
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </form>
     </div>
   )
 }
