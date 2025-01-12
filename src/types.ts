@@ -25,15 +25,15 @@ export interface Chatbot {
 export type Theme = 'light' | 'dark' | 'system'
 
 export interface UserPreferences {
-  fontSize: string;
-  messageDisplay: string;
-  persistentChats: boolean;
+  fontSize: 'small' | 'medium' | 'large';
+  theme: 'light' | 'dark';
   chatHistory: boolean;
   maxHistoryDays: number;
-  theme: 'light' | 'dark';
   enableNotifications: boolean;
   soundNotifications: boolean;
   notificationVolume: number;
+  messageDisplay: string;
+  persistentChats: boolean;
 }
 
 export interface Chat {

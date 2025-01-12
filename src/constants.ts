@@ -4,12 +4,12 @@ export const NEW_CHAT_NAME = 'New Chat'
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   fontSize: 'medium',
-  messageDisplay: 'modern',
-  persistentChats: true,
+  theme: 'light',
   chatHistory: true,
   maxHistoryDays: 30,
-  theme: 'light',
   enableNotifications: true,
   soundNotifications: false,
-  notificationVolume: 0.5
+  notificationVolume: 0.5,
+  messageDisplay: 'modern',
+  persistentChats: true
 }

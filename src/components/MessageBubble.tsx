@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Message } from '../types';
+import { Message, UserPreferences } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, Clock, Copy, MoreHorizontal } from 'lucide-react';
+import { Check, Clock, Copy } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
+  preferences: UserPreferences;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, preferences }) => {
   const [showActions, setShowActions] = useState(false);
   const isUser = message.role === 'user';
   
@@ -22,6 +23,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     month: 'short',
     day: 'numeric'
   });
+
+  const getFontSize = () => {
+    switch (preferences?.fontSize) {
+      case 'small': return 'text-sm';
+      case 'large': return 'text-lg';
+      default: return 'text-base';
+    }
+  };
 
   return (
     <div 
@@ -46,7 +55,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         }`}
       >
         {/* Message Content */}
-        <div className={`relative ${isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
+        <div className={`relative ${getFontSize()} ${isUser ? 'text-white' : 'text-gray-800 dark:text-gray-200'}`}>
           {isUser ? (
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
           ) : (

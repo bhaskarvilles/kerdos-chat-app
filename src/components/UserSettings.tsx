@@ -120,16 +120,40 @@ const UserSettings: React.FC<UserSettingsProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Font Size
             </label>
-            <select
-              value={localPreferences.fontSize}
-              onChange={(e) => handlePreferenceChange('fontSize', e.target.value as 'small' | 'medium' | 'large')}
-              className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 
-                bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
-            >
-              <option value="small">Small</option>
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
+            <div className="grid grid-cols-3 gap-2">
+              {['small', 'medium', 'large'].map((size) => (
+                <button
+                  key={size}
+                  onClick={() => onUpdatePreferences({ fontSize: size })}
+                  className={`px-4 py-2 rounded-lg border transition-all
+                    ${preferences.fontSize === size
+                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                >
+                  <span className={
+                    size === 'small' ? 'text-sm' :
+                    size === 'large' ? 'text-lg' :
+                    'text-base'
+                  }>
+                    {size.charAt(0).toUpperCase() + size.slice(1)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font Preview */}
+          <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50 space-y-2">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Preview</p>
+            <p className={`
+              ${preferences.fontSize === 'small' ? 'text-sm' : 
+                preferences.fontSize === 'large' ? 'text-lg' : 
+                'text-base'}
+              ${preferences.fontFamily}
+            `}>
+              This is how your messages will look.
+            </p>
           </div>
 
           {/* Chat History Settings */}
