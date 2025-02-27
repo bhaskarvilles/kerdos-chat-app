@@ -1,20 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Mic } from 'lucide-react'
+import { Send, Paperclip, Mic, Hash, Image, Plus } from 'lucide-react'
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>
   onAttachment?: (file: File) => void
   className?: string
+  suggestions?: string[]
+  disabled?: boolean
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({ 
   onSendMessage, 
   onAttachment,
-  className = '' 
+  className = '',
+  suggestions,
+  disabled = false
 }) => {
   const [message, setMessage] = useState('')
   const [isRecording, setIsRecording] = useState(false)
+  const [showTools, setShowTools] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const toolsRef = useRef<HTMLDivElement>(null)
+
+  // Handle click outside tools menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
+        setShowTools(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -26,15 +43,11 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (message.trim()) {
-      try {
-        await onSendMessage(message.trim())
-        setMessage('')
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto'
-        }
-      } catch (error) {
-        console.error('Failed to send message:', error)
+    if (message.trim() && !disabled) {
+      await onSendMessage(message.trim())
+      setMessage('')
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
       }
     }
   }
@@ -42,7 +55,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e as unknown as React.FormEvent)
+      handleSubmit(e)
     }
   }
 
@@ -56,9 +69,47 @@ const MessageInput: React.FC<MessageInputProps> = ({
   return (
     <form 
       onSubmit={handleSubmit} 
-      className={`relative bg-white dark:bg-gray-800 shadow-lg rounded-2xl ${className}`}
+      className={`relative max-w-3xl mx-auto ${className}`}
     >
+      {/* Tools Menu */}
+      {showTools && (
+        <div 
+          ref={toolsRef}
+          className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 
+            rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2"
+        >
+          <div className="flex flex-col gap-1">
+            <button 
+              type="button"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 
+                dark:hover:bg-gray-700 rounded-md text-sm text-gray-700 dark:text-gray-300"
+            >
+              <Hash className="w-4 h-4" />
+              <span>Web Search</span>
+            </button>
+            <button 
+              type="button"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 
+                dark:hover:bg-gray-700 rounded-md text-sm text-gray-700 dark:text-gray-300"
+            >
+              <Image className="w-4 h-4" />
+              <span>Generate Image</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-end space-x-2 p-4">
+        {/* Tools Button */}
+        <button
+          type="button"
+          onClick={() => setShowTools(!showTools)}
+          className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300
+            hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
+
         {/* File attachment button */}
         <label className="cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
           <input
@@ -77,25 +128,21 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            className="w-full p-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-700 
-              focus:outline-none focus:ring-2 focus:ring-violet-500 dark:focus:ring-violet-400 
-              bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white resize-none
-              placeholder-gray-500 dark:placeholder-gray-400
-              transition-all duration-200"
+            placeholder="Message AI Assistant..."
+            className="w-full p-4 pr-24 rounded-lg border border-gray-200 dark:border-gray-700 
+              focus:outline-none focus:border-teal-500 dark:focus:border-teal-500
+              resize-none bg-white dark:bg-gray-800"
             rows={1}
-            style={{ maxHeight: '150px' }}
+            disabled={disabled}
           />
           <button
             type="submit"
-            className={`absolute right-2 bottom-2 p-2 rounded-lg transition-all duration-200
-              ${message.trim() 
-                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
-              }`}
-            disabled={!message.trim()}
+            disabled={!message.trim() || disabled}
+            className="absolute right-2 bottom-2 p-2 rounded-lg 
+              bg-teal-600 hover:bg-teal-700 text-white
+              disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Send className="w-5 h-5" />
+            <Send size={20} />
           </button>
         </div>
 

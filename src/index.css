@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 255 255 255;
+    --foreground: 15 23 42;
+  }
+
+  .dark {
+    --background: 15 23 42;
+    --foreground: 255 255 255;
+  }
+
+  body {
+    @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+  }
+}
+
+/* Add smooth transitions for theme changes */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
 @layer components {
   .chat-container {
     @apply flex h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 

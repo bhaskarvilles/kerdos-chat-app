@@ -4,7 +4,7 @@ import MessageInput from './MessageInput'
 import TopicSuggestions from './TopicSuggestions'
 import UserSettings from './UserSettings'
 import { Message, User, Chat, UserPreferences, Chatbot } from '../types'
-import { LogOut, Settings, Sun, Moon, Download, AlertCircle } from 'lucide-react'
+import { LogOut, Settings, Sun, Moon, Download, AlertCircle, Menu, MessageSquare, User as UserIcon, Plus, Search } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { getAIResponse } from '../services/aiChatService'
 import { initializeOpenAI, getOpenAIResponse } from '../services/openAiService'
@@ -15,6 +15,8 @@ import Toast from './Toast'
 import Sidebar from './Sidebar'
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import MessageBubble from './MessageBubble'
+import TypingIndicator from './TypingIndicator'
 
 interface ChatInterfaceProps {
   user: User;
@@ -254,116 +256,185 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar with responsive behavior */}
-      <Sidebar
-        chats={chats}
-        activeChat={activeChat}
-        onChatSelect={handleChatChange}
-        onNewChat={handleNewChat}
-        onDeleteChat={handleCloseChat}
-        onSignOut={onSignOut}
-        onExportChat={handleExportChat}
-        onToggleTheme={toggleTheme}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        theme={theme}
-        userPreferences={userPreferences}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        className={`transition-all duration-300 ease-in-out
-          ${isSidebarCollapsed ? 'w-20' : 'w-72'} 
-          flex-shrink-0 shadow-xl z-10 
-          md:relative md:translate-x-0
-          ${isSidebarCollapsed ? '-translate-x-full' : 'translate-x-0'}
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Sidebar */}
+      <div 
+        className={`
+          ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-80 opacity-100'} 
+          transition-all duration-300 bg-white dark:bg-gray-800 border-r border-gray-200 
+          dark:border-gray-700 flex flex-col overflow-hidden
         `}
-      />
-      
-      {/* Main chat container with max-width and auto-scaling */}
-      <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="flex flex-col h-full max-w-6xl w-full mx-auto">
-          {/* Header - Fixed height */}
-          <div className="h-16 flex items-center justify-between px-4 sm:px-6 
-            bg-white/80 dark:bg-gray-800/90 backdrop-blur-md 
-            border-b border-gray-200/50 dark:border-gray-700/50">
-            <div className="flex items-center space-x-4 min-w-0">
-              <h1 className="text-lg font-semibold bg-gradient-to-r from-violet-500 to-fuchsia-500 
-                text-transparent bg-clip-text truncate">
-                {activeChatData.name}
-              </h1>
-              {isPaidUser && (
-                <span className="flex-shrink-0 px-2 py-1 text-xs font-medium 
-                  text-emerald-700 dark:text-emerald-400 
-                  bg-emerald-100 dark:bg-emerald-900/30 rounded-full">
-                  Pro
-                </span>
-              )}
-            </div>
-            {error && (
-              <div className="flex-shrink-0 flex items-center px-4 py-2 
-                bg-red-50 dark:bg-red-900/30 rounded-lg 
-                border border-red-200 dark:border-red-800">
-                <AlertCircle size={16} className="mr-2 text-red-500" />
-                <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
-              </div>
-            )}
-          </div>
+      >
+        {/* New Chat Button */}
+        <div className="p-4">
+          <button 
+            onClick={handleNewChat}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg
+              bg-teal-600 hover:bg-teal-700 text-white transition-colors duration-200"
+          >
+            <Plus size={20} />
+            <span className="font-medium">New Chat</span>
+          </button>
+        </div>
 
-          {/* Chat window - Flexible height with padding */}
-          <div className="flex-1 overflow-hidden bg-white/50 dark:bg-gray-800/50">
-            <div className="h-full px-4 sm:px-6">
-              <ChatWindow
-                ref={chatWindowRef}
-                messages={activeChatData.messages}
-                onSendMessage={handleSendMessage}
-                isLoading={isLoading}
-                preferences={userPreferences}
-                className="h-full max-w-4xl mx-auto py-6 backdrop-blur-sm"
-              />
-            </div>
+        {/* Search Chats */}
+        <div className="px-4 pb-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search chats..."
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg
+                text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
           </div>
+        </div>
 
-          {/* Input area - Fixed position at bottom */}
-          <div className="border-t border-gray-200/50 dark:border-gray-700/50 
-            bg-white/80 dark:bg-gray-800/90 backdrop-blur-md">
-            <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <TopicSuggestions
-                suggestions={suggestions}
-                onSuggestionClick={handleSuggestionClick}
-                onHideSuggestions={handleHideSuggestions}
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto px-2 space-y-1">
+          {chats.map(chat => (
+            <button
+              key={chat.id}
+              onClick={() => handleChatChange(chat.id)}
+              className={`
+                w-full text-left px-3 py-3 rounded-lg transition-colors duration-200
+                flex items-center gap-3 group hover:bg-gray-100 dark:hover:bg-gray-700
+                ${activeChat === chat.id ? 'bg-gray-100 dark:bg-gray-700' : ''}
+              `}
+            >
+              <MessageSquare 
+                size={18} 
+                className={`
+                  ${activeChat === chat.id ? 'text-teal-600' : 'text-gray-400'}
+                `} 
               />
-              <div className="py-4">
-                <MessageInput
-                  onSendMessage={handleSendMessage}
-                  className="bg-white dark:bg-gray-900 shadow-lg rounded-xl 
-                    border border-gray-200/50 dark:border-gray-700/50"
-                />
+              <div className="flex-1 min-w-0">
+                <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {chat.name}
+                </p>
+                <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                  {chat.messages[chat.messages.length - 1]?.content.substring(0, 30) || 'No messages yet'}...
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* User Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white">
+                <UserIcon size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  {user.username}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {isPaidUser ? 'Pro Plan' : 'Free Plan'}
+                </p>
               </div>
             </div>
+            <button 
+              onClick={() => setIsSettingsOpen(true)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Settings size={18} className="text-gray-500" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Settings Modal - Centered with max-width */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 
-          flex items-center justify-center p-4">
-          <UserSettings
-            preferences={userPreferences}
-            onUpdatePreferences={handleUpdatePreferences}
-            onClose={() => setIsSettingsOpen(false)}
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl 
-              max-w-md w-full mx-auto"
-          />
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="h-16 flex items-center justify-between px-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Menu size={20} className="text-gray-500" />
+            </button>
+            <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              {activeChatData.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? (
+                <Moon size={20} className="text-gray-500" />
+              ) : (
+                <Sun size={20} className="text-gray-400" />
+              )}
+            </button>
+            <button
+              onClick={() => handleExportChat('pdf')}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300
+                hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <Download size={16} />
+              <span>Export</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Messages */}
+        <div 
+          ref={chatWindowRef}
+          className="flex-1 overflow-y-auto px-4 py-6"
+        >
+          <div className="max-w-3xl mx-auto space-y-6">
+            {activeChatData.messages.map((message, index) => (
+              <MessageBubble
+                key={message.id || index}
+                message={message}
+                preferences={userPreferences}
+                isLast={index === activeChatData.messages.length - 1}
+              />
+            ))}
+            {isLoading && <TypingIndicator />}
+          </div>
         </div>
+
+        {/* Input Area */}
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <div className="max-w-3xl mx-auto p-4">
+            <MessageInput
+              onSendMessage={handleSendMessage}
+              suggestions={suggestions}
+              disabled={isLoading}
+            />
+            <p className="mt-2 text-xs text-center text-gray-500 dark:text-gray-400">
+              AI Assistant may produce inaccurate information
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {isSettingsOpen && (
+        <UserSettings
+          preferences={userPreferences}
+          onUpdatePreferences={handleUpdatePreferences}
+          onClose={() => setIsSettingsOpen(false)}
+          isPaidUser={isPaidUser}
+          onOpenAIKeySubmit={handleOpenAIKeySubmit}
+        />
       )}
 
-      {/* Toast Messages - Fixed position */}
+      {/* Toast Messages */}
       {toastMessage && (
-        <Toast
+        <Toast 
           message={toastMessage}
+          type={error ? 'error' : 'info'}
           onClose={() => setToastMessage(null)}
-          type="error"
-          className="fixed bottom-4 right-4 z-50"
         />
       )}
     </div>
