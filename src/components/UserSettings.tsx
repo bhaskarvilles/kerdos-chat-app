@@ -58,6 +58,9 @@ const UserSettings: React.FC<UserSettingsProps> = ({
   ) => {
     setLocalPreferences(prev => ({ ...prev, [key]: value }))
     setIsDirty(true)
+    // Save to localStorage immediately
+    const updatedPreferences = { ...preferences, [key]: value };
+    localStorage.setItem('userPreferences', JSON.stringify(updatedPreferences));
   }
 
   return (
@@ -124,7 +127,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({
               {['small', 'medium', 'large'].map((size) => (
                 <button
                   key={size}
-                  onClick={() => onUpdatePreferences({ fontSize: size })}
+                  onClick={() => handlePreferenceChange('fontSize', size)}
                   className={`px-4 py-2 rounded-lg border transition-all
                     ${preferences.fontSize === size
                       ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'

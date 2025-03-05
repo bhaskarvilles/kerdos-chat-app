@@ -3,13 +3,13 @@ import { Message, UserPreferences } from '../types';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Check, Clock, Copy, User, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Check, Clock, Copy, User, ThumbsUp, ThumbsDown, Bot } from 'lucide-react';
 import remarkGfm from 'remark-gfm';
 
 interface MessageBubbleProps {
   message: Message;
   preferences: UserPreferences;
-  isLast: boolean;
+  isLast?: boolean;
 }
 
 const CodeBlock: React.FC<any> = ({ language, children }) => {
@@ -55,125 +55,50 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, preferences, isL
   };
 
   return (
-    <div 
-      className={`
-        flex gap-4 py-6 px-4 -mx-4
-        ${message.role === 'assistant' ? 'bg-gray-50 dark:bg-gray-800/50' : ''}
-        ${isLast ? 'rounded-lg' : ''}
-      `}
-    >
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-start gap-3 max-w-full`}>
       {/* Avatar */}
-      <div className="flex-shrink-0">
-        {message.role === 'assistant' ? (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 
-            flex items-center justify-center text-white font-medium shadow-lg">
-            AI
-          </div>
-        ) : (
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-500 
-            flex items-center justify-center text-white shadow-lg">
-            <User size={16} />
-          </div>
-        )}
+      <div className={`flex-shrink-0 order-${isUser ? '2' : '1'}`}>
+        <div className={`
+          w-8 h-8 rounded-lg flex items-center justify-center
+          ${isUser ? 'bg-teal-500' : 'bg-violet-500'}
+        `}>
+          {isUser ? (
+            <User size={16} className="text-white" />
+          ) : (
+            <Bot size={16} className="text-white" />
+          )}
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 max-w-3xl space-y-2">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
-            {message.role === 'assistant' ? 'AI Assistant' : message.username}
-          </span>
-          <span className="text-xs text-gray-500">
-            {new Date(message.timestamp).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
-          </span>
-        </div>
-
-        <div className={`prose dark:prose-invert max-w-none ${preferences.fontSize}`}>
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ node, inline, className, children, ...props }) {
-                const match = /language-(\w+)/.exec(className || '');
-                return !inline && match ? (
-                  <div className="relative group my-4">
-                    <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleCopy(String(children))}
-                        className="flex items-center gap-1.5 px-2 py-1 text-xs bg-gray-800/70 
-                          text-white rounded-md hover:bg-gray-800 transition-colors"
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check size={12} />
-                            <span>Copied!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={12} />
-                            <span>Copy code</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                    <CodeBlock language={match[1]} {...props}>
-                      {children}
-                    </CodeBlock>
-                  </div>
-                ) : (
-                  <code className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 
-                    rounded-md text-sm font-mono" {...props}>
-                    {children}
-                  </code>
-                );
-              },
-              p: (props) => <p className="mb-4 leading-7" {...props} />,
-              ul: (props) => <ul className="list-disc pl-4 mb-4 space-y-2" {...props} />,
-              ol: (props) => <ol className="list-decimal pl-4 mb-4 space-y-2" {...props} />,
-              a: (props) => (
-                <a 
-                  {...props} 
-                  className="text-teal-600 hover:text-teal-700 dark:text-teal-400 
-                    dark:hover:text-teal-300 transition-colors"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              ),
-            }}
-          >
+      {/* Message Content */}
+      <div className={`
+        flex-1 order-${isUser ? '1' : '2'}
+        max-w-[calc(100%-4rem)] md:max-w-[75%] lg:max-w-[65%]
+      `}>
+        <div className={`
+          rounded-2xl px-4 py-2.5 
+          ${isUser ? 
+            'bg-teal-500 text-white ml-auto' : 
+            'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+          }
+          ${preferences.messageDisplay === 'modern' ? 'shadow-sm' : ''}
+        `}>
+          <div className={`
+            whitespace-pre-wrap break-words
+            ${preferences.fontSize === 'small' ? 'text-sm' : 
+              preferences.fontSize === 'large' ? 'text-lg' : 
+              'text-base'
+            }
+          `}>
             {message.content}
-          </ReactMarkdown>
-        </div>
-
-        {/* Message Actions */}
-        {message.role === 'assistant' && (
-          <div className="flex items-center gap-2 pt-2">
-            <button 
-              onClick={() => handleCopy(message.content)}
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Copy message"
-            >
-              {isCopied ? <Check size={14} /> : <Copy size={14} />}
-            </button>
-            <button 
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Like"
-            >
-              <ThumbsUp size={14} />
-            </button>
-            <button 
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 
-                hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              title="Dislike"
-            >
-              <ThumbsDown size={14} />
-            </button>
           </div>
-        )}
+        </div>
+        <div className={`
+          mt-1 text-xs text-gray-500 dark:text-gray-400
+          ${isUser ? 'text-right' : 'text-left'}
+        `}>
+          {new Date(message.timestamp).toLocaleTimeString()}
+        </div>
       </div>
     </div>
   );

@@ -7,8 +7,15 @@ export interface Message {
 }
 
 export interface User {
-  username: string
-  expirationTime: number
+  username: string;
+  email?: string;
+  joinDate?: Date;
+  expirationTime: number;
+  preferences?: {
+    notifications: boolean;
+    language: string;
+    timezone: string;
+  };
 }
 
 export interface ChatRoom {
@@ -32,7 +39,7 @@ export interface UserPreferences {
   enableNotifications: boolean;
   soundNotifications: boolean;
   notificationVolume: number;
-  messageDisplay: string;
+  messageDisplay: 'modern' | 'classic';
   persistentChats: boolean;
 }
 
