@@ -16,6 +16,12 @@ export interface User {
     language: string;
     timezone: string;
   };
+  subscription?: {
+    tier: 'free' | 'premium';
+    expiresAt?: number;
+    messageCount: number;
+    lastResetTime: number;
+  };
 }
 
 export interface ChatRoom {
@@ -107,4 +113,13 @@ export interface ToastProps {
   onClose: () => void;
   type: 'error' | 'success' | 'info';
   className?: string;
+}
+
+// Add a new interface for subscription tiers
+export interface SubscriptionTier {
+  name: string;
+  price: number;
+  features: string[];
+  messageLimit: number | null; // null means unlimited
+  resetPeriod: number; // in milliseconds
 }

@@ -3,6 +3,7 @@ import { User } from '../types'
 import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { generateOTP, getExpirationTime } from '../utils/auth'
 import { useTheme } from '../contexts/ThemeContext'
+import { initializeUserSubscription } from '../services/userService'
 
 interface SignInProps {
   onSignIn: (user: User) => void
@@ -44,11 +45,21 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn }) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000))
 
-    onSignIn({ 
+    // Create user with subscription info
+    const newUser: User = { 
       username: username.trim(),
-      expirationTime: getExpirationTime()
-    })
+      expirationTime: getExpirationTime(),
+      subscription: {
+        tier: 'free',
+        messageCount: 0,
+        lastResetTime: Date.now()
+      }
+    };
 
+    // Initialize user subscription
+    const initializedUser = initializeUserSubscription(newUser);
+    
+    onSignIn(initializedUser)
     setIsLoading(false)
   }
 

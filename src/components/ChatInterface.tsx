@@ -7,8 +7,10 @@ import { Message, User, Chat, UserPreferences, Chatbot } from '../types'
 import { LogOut, Settings, Sun, Moon, Download, AlertCircle, Menu, MessageSquare, User as UserIcon, Plus, Search } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
 import { getAIResponse } from '../services/aiChatService'
-import { initializeOpenAI, getOpenAIResponse } from '../services/openAiService'
-import { checkUserPaidStatus, saveOpenAIKey, getOpenAIKey } from '../services/userService'
+import { initializeOpenAI, getOpenAIResponse, formatChatHistoryForOpenAI } from '../services/openAiService'
+import { checkUserPaidStatus, saveOpenAIKey, getOpenAIKey, updateUser, incrementMessageCount } from '../services/userService'
+import { canSendMessage, getRemainingMessages, formatTimeUntilReset, getTimeUntilReset } from '../services/subscriptionService'
+import { trackMessageUsage } from '../services/apiProxy'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { CHAT_STORAGE_KEY, USER_PREFERENCES_KEY, DEFAULT_USER_PREFERENCES, NEW_CHAT_NAME } from '../constants'
 import Toast from './Toast'
@@ -18,6 +20,7 @@ import 'jspdf-autotable';
 import MessageBubble from './MessageBubble'
 import TypingIndicator from './TypingIndicator'
 import UserProfile from './UserProfile'
+import SubscriptionInfo from './SubscriptionInfo'
 
 interface ChatInterfaceProps {
   user: User;
@@ -40,6 +43,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     return DEFAULT_USER_PREFERENCES;
   });
   const [isPaidUser, setIsPaidUser] = useState(false)
+  const [canSendMoreMessages, setCanSendMoreMessages] = useState(true)
+  const [remainingMessages, setRemainingMessages] = useState<number | null>(null)
+  const [timeUntilReset, setTimeUntilReset] = useState<number | null>(null)
+  const [currentUser, setCurrentUser] = useState<User>(user)
   const [openAIKey, setOpenAIKey] = useState<string | null>(getOpenAIKey())
   const [error, setError] = useState<string | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -52,7 +59,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await checkUserPaidStatus(user.username).then(setIsPaidUser)
+        // Initialize OpenAI with default credentials
+        initializeOpenAI();
+        
+        // Check if user is premium
+        const isPremium = currentUser.subscription?.tier === 'premium';
+        setIsPaidUser(isPremium);
+        
+        // Check if user can send more messages
+        const canSend = canSendMessage(currentUser);
+        setCanSendMoreMessages(canSend);
+        
+        // Get remaining messages
+        const remaining = getRemainingMessages(currentUser);
+        setRemainingMessages(remaining);
+        
+        // Get time until reset
+        const resetTime = getTimeUntilReset(currentUser);
+        setTimeUntilReset(resetTime);
       } catch (error) {
         console.error('Error initializing app:', error)
         setToastMessage('Failed to initialize app settings')
@@ -62,7 +86,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     }
     
     initializeApp()
-  }, [user.username])
+  }, [currentUser])
 
   useEffect(() => {
     if (chatWindowRef.current) {
@@ -70,15 +94,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     }
   }, [chats, activeChat])
 
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    onSignOut(); // Force re-login to apply changes
+  };
+
   const handleSendMessage = useCallback(async (content: string) => {
-    const timestamp = new Date().toISOString(); // Use ISO string format
+    // Check if user can send more messages
+    if (!canSendMessage(currentUser)) {
+      setToastMessage(`Message limit reached. Please wait ${formatTimeUntilReset(getTimeUntilReset(currentUser))} or upgrade to premium.`);
+      return;
+    }
+    
+    const timestamp = new Date().toISOString();
     
     const newUserMessage: Message = {
       id: String(Date.now()),
       content,
       role: 'user',
       timestamp,
-      username: user.username,
+      username: currentUser.username,
     }
     
     setChats((prevChats: Chat[]) => prevChats.map((chat: Chat) => 
@@ -91,13 +126,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     setError(null)
 
     try {
-      let aiResponse: string
-      if (isPaidUser && openAIKey) {
-        initializeOpenAI(openAIKey)
-        aiResponse = await getOpenAIResponse(content)
-      } else {
-        aiResponse = await getAIResponse(content)
-      }
+      // Get the current chat to extract conversation history
+      const currentChat = chats.find(chat => chat.id === activeChat);
+      const chatHistory = currentChat ? formatChatHistoryForOpenAI(currentChat.messages.slice(-10)) : [];
+      
+      // Track message usage for subscription limits
+      await trackMessageUsage(currentUser.username);
+      
+      // Get AI response
+      const aiResponse = await getOpenAIResponse(content, chatHistory);
+      
+      // Update user message count
+      const updatedUser = incrementMessageCount(currentUser);
+      setCurrentUser(updatedUser);
+      
+      // Update remaining messages
+      setRemainingMessages(getRemainingMessages(updatedUser));
+      setTimeUntilReset(getTimeUntilReset(updatedUser));
+      setCanSendMoreMessages(canSendMessage(updatedUser));
       
       const newAIMessage: Message = {
         id: String(Date.now() + 1),
@@ -113,17 +159,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
           : chat
       ))
       
-      const newSuggestions = generateSuggestions(aiResponse)
-      setSuggestions(newSuggestions)
+      // Generate suggestions based on the AI response
+      if (aiResponse.length > 20) {
+        const newSuggestions = generateSuggestions(aiResponse)
+        setSuggestions(newSuggestions)
+      }
     } catch (error) {
       console.error('Error getting AI response:', error)
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-      setError(errorMessage)
-      setToastMessage(errorMessage)
+      setError('Failed to get AI response. Please try again.')
     } finally {
       setIsLoading(false)
     }
-  }, [activeChat, isPaidUser, openAIKey, user.username, setChats])
+  }, [activeChat, chats, currentUser])
 
   const handleSuggestionClick = useCallback((suggestion: string) => {
     handleSendMessage(suggestion)
@@ -148,6 +195,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
     return randomWords.map(word => `Tell me more about ${word}`)
   }, [])
 
+  const stripMarkdown = (text: string): string => {
+    // Remove headers (# Header)
+    let plainText = text.replace(/^#+\s+/gm, '');
+    
+    // Remove bold and italic (**bold**, *italic*)
+    plainText = plainText.replace(/(\*\*|__)(.*?)\1/g, '$2');
+    plainText = plainText.replace(/(\*|_)(.*?)\1/g, '$2');
+    
+    // Remove code blocks
+    plainText = plainText.replace(/```[\s\S]*?```/g, (match) => {
+      // Extract the code content without the backticks and language
+      const code = match.replace(/```(?:\w+)?\n([\s\S]*?)```/g, '$1');
+      return code.trim();
+    });
+    
+    // Remove inline code
+    plainText = plainText.replace(/`([^`]+)`/g, '$1');
+    
+    // Remove links [text](url)
+    plainText = plainText.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // Remove images ![alt](url)
+    plainText = plainText.replace(/!\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
+    // Remove list markers
+    plainText = plainText.replace(/^[\s-]*[-+*]\s+/gm, '');
+    plainText = plainText.replace(/^\s*\d+\.\s+/gm, '');
+    
+    return plainText;
+  };
+
   const handleExportChat = useCallback(async (format: 'txt' | 'pdf' = 'txt') => {
     const activeMessages = chats.find(chat => chat.id === activeChat)?.messages || [];
     const chatName = chats.find(chat => chat.id === activeChat)?.name || 'chat';
@@ -160,11 +238,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
       doc.setFontSize(20);
       doc.text(chatName, 20, 20);
       
-      // Prepare message data
+      // Prepare message data with stripped markdown
       const messageData = activeMessages.map(msg => [
         msg.username,
         new Date(msg.timestamp).toLocaleString(),
-        msg.content
+        stripMarkdown(msg.content)
       ]);
       
       // Add messages table
@@ -176,6 +254,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
           fontSize: userPreferences.fontSize === 'large' ? 12 : 
                    userPreferences.fontSize === 'small' ? 8 : 10,
           cellPadding: 3,
+          overflow: 'linebreak',
+          cellWidth: 'wrap'
         },
         columnStyles: {
           0: { cellWidth: 30 },
@@ -184,16 +264,33 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
         },
         margin: { top: 30 },
         theme: theme === 'dark' ? 'grid' : 'striped',
+        didDrawPage: (data: { settings: { margin: { left: number } } }) => {
+          // Add page number at the bottom
+          doc.setFontSize(10);
+          doc.text(
+            `Page ${doc.getNumberOfPages()}`,
+            data.settings.margin.left,
+            doc.internal.pageSize.height - 10
+          );
+        }
       });
       
       doc.save(`${chatName}_${timestamp}.pdf`);
     } else {
-      // Original txt export logic
-      const chatContent = activeMessages.map(msg => 
-        `${msg.username} (${new Date(msg.timestamp).toLocaleString()}): ${msg.content}`
-      ).join('\n\n');
+      // Improved txt export logic with better formatting
+      const chatContent = activeMessages.map(msg => {
+        const formattedTime = new Date(msg.timestamp).toLocaleString();
+        const formattedContent = stripMarkdown(msg.content);
+        
+        return `[${formattedTime}] ${msg.username}:\n${formattedContent}`;
+      }).join('\n\n---\n\n');
       
-      const blob = new Blob([chatContent], { type: 'text/plain' });
+      const header = `Chat: ${chatName}\nExported on: ${new Date().toLocaleString()}\n\n`;
+      const footer = `\n\nExported from Green AI Chat`;
+      
+      const fullContent = header + chatContent + footer;
+      
+      const blob = new Blob([fullContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       
       const a = document.createElement('a');
@@ -450,6 +547,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
           </div>
         </header>
 
+        {/* Subscription warning for free users */}
+        {!isPaidUser && remainingMessages !== null && remainingMessages <= 2 && (
+          <div className="bg-yellow-100 dark:bg-yellow-900 p-3 text-yellow-800 dark:text-yellow-200 text-sm flex items-center">
+            <AlertCircle className="mr-2" size={16} />
+            <span>
+              You have {remainingMessages} message{remainingMessages !== 1 ? 's' : ''} remaining. 
+              Messages will reset in {formatTimeUntilReset(timeUntilReset)}.
+              <button 
+                className="ml-2 underline font-semibold"
+                onClick={() => setIsProfileOpen(true)}
+              >
+                Upgrade to Premium
+              </button>
+            </span>
+          </div>
+        )}
+
         {/* Messages Area with fixed width and proper scaling */}
         <div 
           ref={chatWindowRef}
@@ -511,20 +625,38 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ user, onSignOut }) => {
         />
       )}
 
-      {/* UserProfile modal */}
+      {/* UserProfile modal with subscription info */}
       {isProfileOpen && (
-        <UserProfile
-          user={user}
-          isPaidUser={isPaidUser}
-          preferences={userPreferences}
-          onUpdateProfile={handleUpdateProfile}
-          onOpenSettings={() => {
-            setIsProfileOpen(false);
-            setIsSettingsOpen(true);
-          }}
-          onSignOut={onSignOut}
-          onClose={() => setIsProfileOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Your Profile</h2>
+                <button 
+                  onClick={() => setIsProfileOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <UserProfile user={currentUser} />
+              
+              <SubscriptionInfo user={currentUser} onUserUpdate={handleUserUpdate} />
+              
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setIsProfileOpen(false)}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

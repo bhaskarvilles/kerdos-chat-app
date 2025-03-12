@@ -1,4 +1,5 @@
 import { User } from '../types';
+import { checkSubscriptionExpiry, updateMessageCount } from './subscriptionService';
 
 // This is a mock implementation. In a real-world scenario, this would involve
 // checking against a database or an API endpoint.
@@ -6,8 +7,14 @@ export const checkUserPaidStatus = async (username: string): Promise<boolean> =>
   // Simulating an API call with a timeout
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // For demonstration purposes, let's consider users with even-length usernames as paid
-  return username.length % 2 === 0;
+  // Get user from local storage
+  const storedUser = localStorage.getItem('chatUser');
+  if (storedUser) {
+    const user = JSON.parse(storedUser);
+    return user.subscription?.tier === 'premium';
+  }
+  
+  return false;
 };
 
 export const saveOpenAIKey = (key: string) => {
@@ -27,4 +34,33 @@ export const getOpenAIKey = (): string | null => {
   localStorage.removeItem('openai_key');
   localStorage.removeItem('openai_key_expiry');
   return null;
+};
+
+// Update user in local storage
+export const updateUser = (user: User): User => {
+  // Check if subscription has expired
+  user = checkSubscriptionExpiry(user);
+  
+  // Save to local storage
+  localStorage.setItem('chatUser', JSON.stringify(user));
+  return user;
+};
+
+// Update message count for user
+export const incrementMessageCount = (user: User): User => {
+  user = updateMessageCount(user);
+  return updateUser(user);
+};
+
+// Initialize subscription for a new user
+export const initializeUserSubscription = (user: User): User => {
+  if (!user.subscription) {
+    user.subscription = {
+      tier: 'free',
+      messageCount: 0,
+      lastResetTime: Date.now()
+    };
+  }
+  
+  return updateUser(user);
 };
