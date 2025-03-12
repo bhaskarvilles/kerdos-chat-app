@@ -4,27 +4,30 @@ import { getAIResponse } from "./aiChatService";
 
 // Format chat history for OpenAI API
 export const formatChatHistoryForOpenAI = (messages: Message[]) => {
-  return messages.map(msg => ({
+  console.log('Formatting messages:', messages);
+  const formatted = messages.map(msg => ({
     role: msg.role === 'user' ? 'user' : 'assistant',
     content: msg.content
   }));
+  console.log('Formatted messages:', formatted);
+  return formatted;
 };
 
 // Get response from OpenAI API via backend service
-export const getOpenAIResponse = async (prompt: string, history: any[] = []) => {
+export const getOpenAIResponse = async (messages: Array<{ role: string; content: string; }>) => {
   try {
     // Prepare messages for the API
-    const messages = [
+    const formattedMessages = [
       { role: 'system', content: 'You are a helpful, friendly AI assistant.' },
-      ...history,
-      { role: 'user', content: prompt }
+      ...messages
     ];
     
+    console.log('Sending request to OpenAI with messages:', formattedMessages);
+    
     // Use the backend service via apiProxy
-    console.log('Using backend service for AI response');
     return await fetchChatCompletion({
-      model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-3.5-turbo',
-      messages: messages,
+      model: 'gpt-3.5-turbo', // Using the standard model name
+      messages: formattedMessages,
       temperature: 0.7,
       max_tokens: 1000
     });
@@ -34,7 +37,9 @@ export const getOpenAIResponse = async (prompt: string, history: any[] = []) => 
     // Last resort: use mock AI service
     try {
       console.log('Using mock AI service as fallback');
-      return await getAIResponse(prompt);
+      // Find the last user message using reverse find
+      const lastUserMessage = [...messages].reverse().find(msg => msg.role === 'user')?.content || '';
+      return await getAIResponse(lastUserMessage);
     } catch (mockError) {
       console.error('Mock AI service failed:', mockError);
       throw new Error('Failed to get AI response. Please try again later.');

@@ -209,10 +209,7 @@ const ChatInterface: React.FC = () => {
       if (!currentChat) throw new Error('Chat not found');
       
       // Format chat history for the AI
-      const formattedHistory = currentChat.messages.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      }));
+      const formattedHistory = formatChatHistoryForOpenAI(currentChat.messages);
       
       // Get response from OpenAI
       const aiResponse = await getOpenAIResponse(formattedHistory);
@@ -239,16 +236,14 @@ const ChatInterface: React.FC = () => {
       
       setChats(finalChats);
       
-      // Track message usage if user is authenticated
-      if (user && userSubscription) {
-        // Update message count in subscription
-        // This would be handled by a Supabase function in production
-        console.log('Tracking message usage for user:', user.id);
+      // Track message usage
+      if (user?.email) {
+        await trackMessageUsage(user.email);
       }
       
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send message');
     } finally {
       setIsLoading(false);
     }

@@ -49,7 +49,14 @@ export const trackMessageUsage = async (username: string): Promise<void> => {
  */
 export const fetchChatCompletion = async (request: ChatCompletionRequest): Promise<string> => {
   try {
-    console.log('Sending request to backend service:', request);
+    console.log('Request details:', {
+      url: `${BACKEND_SERVICE_URL}/api/chat`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request, null, 2)
+    });
     
     const response = await fetch(`${BACKEND_SERVICE_URL}/api/chat`, {
       method: 'POST',
@@ -60,11 +67,20 @@ export const fetchChatCompletion = async (request: ChatCompletionRequest): Promi
     });
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to get chat completion');
+      const errorText = await response.text();
+      console.error('Error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      
+      const errorData = JSON.parse(errorText || '{}');
+      throw new Error(errorData.message || `Failed to get chat completion: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log('Response data:', data);
+    
     return data.message || data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   } catch (error) {
     console.error('Error fetching chat completion:', error);
