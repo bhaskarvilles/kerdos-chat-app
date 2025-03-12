@@ -6,6 +6,54 @@ export interface Message {
   username: string;
 }
 
+// Legacy User type - keeping for reference during transition
+export interface LegacyUser {
+  username: string;
+  email?: string;
+  joinDate?: Date;
+  expirationTime: number;
+  preferences?: {
+    notifications: boolean;
+    language: string;
+    timezone: string;
+  };
+  subscription?: {
+    tier: 'free' | 'premium';
+    expiresAt?: number;
+    messageCount: number;
+    lastResetTime: number;
+  };
+}
+
+// New UserProfile type to store additional user data in Supabase
+export interface UserProfile {
+  id: string;
+  username: string;
+  full_name?: string;
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+  preferences?: {
+    notifications: boolean;
+    language: string;
+    timezone: string;
+  };
+}
+
+// New UserSubscription type to store subscription data in Supabase
+export interface UserSubscription {
+  id: string;
+  user_id: string;
+  tier: 'free' | 'premium';
+  status: 'active' | 'canceled' | 'expired';
+  starts_at: string;
+  expires_at?: string;
+  message_count: number;
+  last_reset_time: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface User {
   username: string;
   email?: string;

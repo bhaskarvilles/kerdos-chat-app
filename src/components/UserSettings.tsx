@@ -7,7 +7,6 @@ interface UserSettingsProps {
   onUpdatePreferences: (newPreferences: Partial<UserPreferences>) => void;
   onClose: () => void;
   isPaidUser?: boolean;
-  onOpenAIKeySubmit?: (key: string) => void;
   className?: string;
 }
 
@@ -16,11 +15,8 @@ const UserSettings: React.FC<UserSettingsProps> = ({
   onUpdatePreferences, 
   onClose, 
   isPaidUser = false,
-  onOpenAIKeySubmit,
   className = ''
 }) => {
-  const [openAIKey, setOpenAIKey] = useState('')
-  const [showAPIKey, setShowAPIKey] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
   const [localPreferences, setLocalPreferences] = useState<UserPreferences>(preferences)
 
@@ -28,225 +24,306 @@ const UserSettings: React.FC<UserSettingsProps> = ({
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isDirty) {
-          if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-            onClose();
-          }
-        } else {
-          onClose();
-        }
+        onClose();
       }
-    }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [onClose, isDirty])
+    };
+    
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
-  // Handle form submission
+  // Update local preferences when props change
+  useEffect(() => {
+    setLocalPreferences(preferences);
+  }, [preferences]);
+
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onUpdatePreferences(localPreferences)
-    if (openAIKey.trim() && onOpenAIKeySubmit) {
-      onOpenAIKeySubmit(openAIKey.trim())
-    }
-    setIsDirty(false)
-  }
+    e.preventDefault();
+    onUpdatePreferences(localPreferences);
+    setIsDirty(false);
+  };
 
-  // Handle preference changes
   const handlePreferenceChange = <K extends keyof UserPreferences>(
     key: K,
     value: UserPreferences[K]
   ) => {
-    setLocalPreferences(prev => ({ ...prev, [key]: value }))
-    setIsDirty(true)
-    // Save to localStorage immediately
-    const updatedPreferences = { ...preferences, [key]: value };
-    localStorage.setItem('userPreferences', JSON.stringify(updatedPreferences));
-  }
+    setLocalPreferences(prev => ({ ...prev, [key]: value }));
+    setIsDirty(true);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <form 
-        onSubmit={handleSubmit}
-        className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto ${className}`}
-      >
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-transparent bg-clip-text">
-            Settings
-          </h2>
-          <button 
-            type="button"
-            onClick={() => isDirty ? window.confirm('Discard changes?') && onClose() : onClose()}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Settings Content */}
-        <div className="p-6 space-y-6">
-          {/* Theme Selection */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Theme
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => handlePreferenceChange('theme', 'light')}
-                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${
-                  localPreferences.theme === 'light'
-                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <Sun className="w-5 h-5 text-amber-500" />
-                <span>Light</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePreferenceChange('theme', 'dark')}
-                className={`flex items-center justify-center space-x-2 p-3 rounded-xl border transition-all ${
-                  localPreferences.theme === 'dark'
-                    ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20'
-                    : 'border-gray-200 dark:border-gray-700'
-                }`}
-              >
-                <Moon className="w-5 h-5 text-blue-500" />
-                <span>Dark</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Font Size */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Font Size
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {['small', 'medium', 'large'].map((size) => (
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${className}`}>
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        >
+          <X size={24} />
+        </button>
+        
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Settings</h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Appearance */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h3>
+            
+            {/* Theme */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Theme
+              </label>
+              <div className="flex space-x-4">
                 <button
-                  key={size}
-                  onClick={() => handlePreferenceChange('fontSize', size)}
-                  className={`px-4 py-2 rounded-lg border transition-all
-                    ${preferences.fontSize === size
-                      ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
-                      : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  type="button"
+                  onClick={() => handlePreferenceChange('theme', 'light')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl border 
+                    ${localPreferences.theme === 'light' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
                     }`}
                 >
-                  <span className={
-                    size === 'small' ? 'text-sm' :
-                    size === 'large' ? 'text-lg' :
-                    'text-base'
-                  }>
-                    {size.charAt(0).toUpperCase() + size.slice(1)}
-                  </span>
+                  <Sun size={18} />
+                  <span>Light</span>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('theme', 'dark')}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-xl border 
+                    ${localPreferences.theme === 'dark' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  <Moon size={18} />
+                  <span>Dark</span>
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Font Preview */}
-          <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900/50 space-y-2">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Preview</p>
-            <p className={`
-              ${preferences.fontSize === 'small' ? 'text-sm' : 
-                preferences.fontSize === 'large' ? 'text-lg' : 
-                'text-base'}
-              ${preferences.fontFamily}
-            `}>
-              This is how your messages will look.
-            </p>
-          </div>
-
-          {/* Chat History Settings */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Store Chat History
+            
+            {/* Font Size */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Font Size
               </label>
-              <button
-                type="button"
-                onClick={() => handlePreferenceChange('chatHistory', !localPreferences.chatHistory)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  localPreferences.chatHistory ? 'bg-violet-500' : 'bg-gray-200 dark:bg-gray-700'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    localPreferences.chatHistory ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('fontSize', 'small')}
+                  className={`px-4 py-2 rounded-xl border 
+                    ${localPreferences.fontSize === 'small' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  Small
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('fontSize', 'medium')}
+                  className={`px-4 py-2 rounded-xl border 
+                    ${localPreferences.fontSize === 'medium' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  Medium
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('fontSize', 'large')}
+                  className={`px-4 py-2 rounded-xl border 
+                    ${localPreferences.fontSize === 'large' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  Large
+                </button>
+              </div>
             </div>
-
-            {localPreferences.chatHistory && (
-              <div className="space-y-2 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  History Duration (days)
-                </label>
-                <input
-                  type="number"
-                  value={localPreferences.maxHistoryDays}
-                  onChange={(e) => handlePreferenceChange('maxHistoryDays', Math.max(1, Math.min(30, parseInt(e.target.value))))}
-                  min="1"
-                  max="30"
-                  className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 
-                    bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
-                />
+            
+            {/* Message Display */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Message Display
+              </label>
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('messageDisplay', 'modern')}
+                  className={`px-4 py-2 rounded-xl border 
+                    ${localPreferences.messageDisplay === 'modern' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  Modern
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePreferenceChange('messageDisplay', 'classic')}
+                  className={`px-4 py-2 rounded-xl border 
+                    ${localPreferences.messageDisplay === 'classic' 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' 
+                      : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}
+                >
+                  Classic
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Notifications */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
+            
+            {window.isNotificationSupported ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Enable Notifications
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localPreferences.enableNotifications}
+                      onChange={(e) => handlePreferenceChange('enableNotifications', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+                  </label>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Sound Notifications
+                  </label>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localPreferences.soundNotifications}
+                      onChange={(e) => handlePreferenceChange('soundNotifications', e.target.checked)}
+                      className="sr-only peer"
+                      disabled={!localPreferences.enableNotifications}
+                    />
+                    <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600 ${!localPreferences.enableNotifications ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                  </label>
+                </div>
+                
+                {localPreferences.soundNotifications && localPreferences.enableNotifications && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Notification Volume
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={localPreferences.notificationVolume}
+                      onChange={(e) => handlePreferenceChange('notificationVolume', parseFloat(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl animate-fadeIn">
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                  Notifications are not supported on this device or browser.
+                </p>
               </div>
             )}
           </div>
-
-          {/* OpenAI API Key (Pro Users Only) */}
-          {isPaidUser && onOpenAIKeySubmit && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                OpenAI API Key
+          
+          {/* Chat History */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Chat History</h3>
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Save Chat History
               </label>
-              <div className="relative">
+              <label className="relative inline-flex items-center cursor-pointer">
                 <input
-                  type={showAPIKey ? 'text' : 'password'}
-                  value={openAIKey}
-                  onChange={(e) => setOpenAIKey(e.target.value)}
-                  placeholder="Enter your OpenAI API key"
-                  className="w-full px-4 py-2 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 
-                    bg-white dark:bg-gray-900 focus:ring-2 focus:ring-violet-500 transition-all"
+                  type="checkbox"
+                  checked={localPreferences.chatHistory}
+                  onChange={(e) => handlePreferenceChange('chatHistory', e.target.checked)}
+                  className="sr-only peer"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowAPIKey(!showAPIKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
-                >
-                  {showAPIKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Your API key will be stored securely and will expire after 1 hour.
-              </p>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+              </label>
             </div>
-          )}
-        </div>
+            
+            {localPreferences.chatHistory && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Keep History For
+                </label>
+                <select
+                  value={localPreferences.maxHistoryDays}
+                  onChange={(e) => handlePreferenceChange('maxHistoryDays', parseInt(e.target.value))}
+                  className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 
+                    bg-white dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 transition-all"
+                >
+                  <option value={7}>7 days</option>
+                  <option value={14}>14 days</option>
+                  <option value={30}>30 days</option>
+                  <option value={90}>90 days</option>
+                  <option value={365}>1 year</option>
+                </select>
+              </div>
+            )}
+            
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Persistent Chats
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={localPreferences.persistentChats}
+                  onChange={(e) => handlePreferenceChange('persistentChats', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 dark:peer-focus:ring-emerald-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-600"></div>
+              </label>
+            </div>
+          </div>
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="submit"
-            disabled={!isDirty && !openAIKey}
-            className={`w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-xl 
-              transition-all duration-200 ${
-              isDirty || openAIKey
-                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-            }`}
-          >
-            <Save className="w-5 h-5" />
-            <span>Save Changes</span>
-          </button>
-        </div>
-      </form>
+          {/* Note about backend service */}
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">
+              This application uses a secure backend service to handle AI interactions. No API key is required.
+            </p>
+          </div>
+          
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={!isDirty}
+              className={`flex items-center space-x-2 px-6 py-2 rounded-xl 
+                ${isDirty 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                } transition-colors`}
+            >
+              <Save size={18} />
+              <span>Save Changes</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-export default UserSettings
+export default UserSettings;

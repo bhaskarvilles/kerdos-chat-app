@@ -28,7 +28,7 @@ const CodeBlock = ({ className, children }: { className?: string; children: Reac
     <div className="relative group">
       <button 
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1 rounded bg-gray-800 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 p-1 rounded bg-emerald-800 text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity"
         aria-label="Copy code"
       >
         {isCopied ? <Check size={14} /> : <Copy size={14} />}
@@ -66,101 +66,100 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, preferences, isL
   };
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} items-start gap-3 max-w-full`}>
-      {/* Avatar */}
-      <div className={`flex-shrink-0 order-${isUser ? '2' : '1'}`}>
-        <div className={`
-          w-8 h-8 rounded-lg flex items-center justify-center
-          ${isUser ? 'bg-teal-500' : 'bg-violet-500'}
-        `}>
-          {isUser ? (
-            <User size={16} className="text-white" />
-          ) : (
-            <Bot size={16} className="text-white" />
-          )}
-        </div>
-      </div>
-
-      {/* Message Content */}
-      <div className={`
-        flex-1 order-${isUser ? '1' : '2'}
-        max-w-[calc(100%-4rem)] md:max-w-[75%] lg:max-w-[65%]
-      `}>
-        <div className={`
-          rounded-2xl px-4 py-2.5 
-          ${isUser ? 
-            'bg-teal-500 text-white ml-auto' : 
-            'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-          }
-          ${preferences.messageDisplay === 'modern' ? 'shadow-sm' : ''}
-        `}>
-          <div className={`
-            prose prose-sm dark:prose-invert max-w-none
-            ${preferences.fontSize === 'small' ? 'text-sm prose-sm' : 
-              preferences.fontSize === 'large' ? 'text-lg prose-lg' : 
-              'text-base prose-base'
-            }
-            ${isUser ? 'prose-headings:text-white prose-a:text-white prose-strong:text-white' : ''}
-          `}>
-            {isUser ? (
-              <div className="whitespace-pre-wrap break-words">{message.content}</div>
-            ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children }) {
-                    const match = /language-(\w+)/.exec(className || '');
-                    return match ? (
-                      <CodeBlock className={className}>{children}</CodeBlock>
-                    ) : (
-                      <code className={`${className} bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded`}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  p({ children }) {
-                    return <p className="mb-2 last:mb-0">{children}</p>;
-                  },
-                  ul({ children }) {
-                    return <ul className="list-disc pl-5 mb-2 last:mb-0">{children}</ul>;
-                  },
-                  ol({ children }) {
-                    return <ol className="list-decimal pl-5 mb-2 last:mb-0">{children}</ol>;
-                  },
-                  li({ children }) {
-                    return <li className="mb-1">{children}</li>;
-                  },
-                  a({ href, children }) {
-                    return <a href={href} target="_blank" rel="noopener noreferrer" className="underline">{children}</a>;
-                  }
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            )}
+    <div 
+      className={`flex flex-col mb-6 ${isUser ? 'items-end' : 'items-start'} animate-fadeIn`}
+      id={`message-${message.id}`}
+    >
+      <div className="flex items-center mb-1 space-x-2">
+        <div className={`flex items-center ${isUser ? 'order-2' : 'order-1'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            isUser 
+              ? 'bg-gradient-to-br from-emerald-500 to-teal-600' 
+              : 'bg-gradient-to-br from-teal-500 to-emerald-600'
+          }`}>
+            {isUser ? <User size={14} className="text-white" /> : <Bot size={14} className="text-white" />}
           </div>
         </div>
-        <div className="flex justify-between items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className={`text-xs text-gray-500 dark:text-gray-400 ${isUser ? 'order-1 mr-2' : 'order-2 ml-2'}`}>
+          <span className="font-medium">{message.username}</span>
+          <span className="mx-1">•</span>
           <span>{formattedTime}</span>
-          {!isUser && (
-            <div className="flex items-center space-x-2">
-              <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors" aria-label="Thumbs up">
-                <ThumbsUp size={12} />
-              </button>
-              <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors" aria-label="Thumbs down">
-                <ThumbsDown size={12} />
-              </button>
-              <button 
-                onClick={() => handleCopy(message.content)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                aria-label="Copy message"
-              >
-                {isCopied ? <Check size={12} /> : <Copy size={12} />}
-              </button>
-            </div>
-          )}
         </div>
       </div>
+      
+      <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl px-4 py-3 shadow-sm ${
+        isUser 
+          ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white' 
+          : 'bg-white dark:bg-gray-800 border border-emerald-100 dark:border-emerald-800/30'
+      }`}>
+        <div className={`prose ${
+          preferences.fontSize === 'small' ? 'prose-sm' : 
+          preferences.fontSize === 'large' ? 'prose-lg' : 'prose-base'
+        } max-w-none ${
+          !isUser ? 'dark:prose-invert prose-emerald' : ''
+        }`}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              code({ className, children }) {
+                const match = /language-(\w+)/.exec(className || '');
+                return match ? (
+                  <CodeBlock className={className}>{children}</CodeBlock>
+                ) : (
+                  <code className={`${className} bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded`}>
+                    {children}
+                  </code>
+                );
+              },
+              p({ children }) {
+                return <p className="mb-2 last:mb-0">{children}</p>;
+              },
+              ul({ children }) {
+                return <ul className="list-disc pl-5 mb-2 last:mb-0">{children}</ul>;
+              },
+              ol({ children }) {
+                return <ol className="list-decimal pl-5 mb-2 last:mb-0">{children}</ol>;
+              },
+              li({ children }) {
+                return <li className="mb-1">{children}</li>;
+              },
+              a({ href, children }) {
+                return <a href={href} target="_blank" rel="noopener noreferrer" className="underline">{children}</a>;
+              }
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
+      </div>
+      
+      {!isUser && (
+        <div className="flex mt-1 space-x-2">
+          <button 
+            onClick={() => handleCopy(message.content)}
+            className="text-xs flex items-center space-x-1 text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+            aria-label="Copy message"
+          >
+            {isCopied ? <Check size={12} /> : <Copy size={12} />}
+            <span>{isCopied ? 'Copied' : 'Copy'}</span>
+          </button>
+          
+          <div className="flex space-x-1">
+            <button 
+              className="p-1 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+              aria-label="Thumbs up"
+            >
+              <ThumbsUp size={12} />
+            </button>
+            <button 
+              className="p-1 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors"
+              aria-label="Thumbs down"
+            >
+              <ThumbsDown size={12} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

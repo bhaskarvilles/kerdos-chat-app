@@ -20,20 +20,36 @@ A modern chat application built with React, TypeScript, and Vite.
 - Vite 5
 - Tailwind CSS
 - Framer Motion for animations
-- OpenAI SDK for AI capabilities
+- Backend service for AI capabilities
+
+## Backend Service
+
+This application uses a backend service hosted on Render to handle AI interactions:
+
+```
+https://openai-chat-backend-gbuu.onrender.com
+```
+
+The backend service handles all API calls to OpenAI, which keeps your API keys secure by not exposing them in the client-side code.
 
 ## Environment Variables
 
-This application uses environment variables to store sensitive information like API keys. For local development, create a `.env` file in the root directory with the following variables:
+This application uses environment variables for configuration. For local development, create a `.env` file in the root directory with the following variables:
 
 ```
-# OpenAI Configuration
-VITE_OPENAI_API_KEY=your_openai_api_key_here
-VITE_OPENAI_ORG_ID=your_openai_org_id_here
-VITE_OPENAI_MODEL=gpt-3.5-turbo
+# Application configuration
+VITE_APP_NAME="Green AI Chat"
+VITE_APP_VERSION="1.2.0"
 
-# API Proxy Configuration
-VITE_API_PROXY_URL=http://localhost:3001/api
+# API configuration
+VITE_API_URL="https://openai-chat-backend-gbuu.onrender.com"
+
+# Feature flags
+VITE_ENABLE_DARK_MODE=true
+VITE_ENABLE_ANALYTICS=false
+
+# OpenAI Configuration
+VITE_OPENAI_MODEL=gpt-3.5-turbo
 ```
 
 ## Deploying to Netlify
@@ -43,18 +59,10 @@ When deploying to Netlify, you need to set up environment variables in the Netli
 1. Go to your Netlify site dashboard
 2. Navigate to Site settings > Environment variables
 3. Add the following environment variables:
-   - `VITE_OPENAI_API_KEY`: Your OpenAI API key
-   - `VITE_OPENAI_ORG_ID`: Your OpenAI Organization ID
+   - `VITE_APP_NAME`: The name of your application
+   - `VITE_APP_VERSION`: The version of your application
+   - `VITE_API_URL`: The URL of the backend service
    - `VITE_OPENAI_MODEL`: The OpenAI model to use (e.g., gpt-3.5-turbo)
-   - `VITE_API_PROXY_URL`: URL to your API proxy (if applicable)
-
-![Netlify Environment Variables](https://docs.netlify.com/images/configure-builds-environment-variables.png)
-
-### Important Security Notes
-
-- Never commit your `.env` file to version control
-- Always use environment variables for sensitive information
-- Consider using Netlify Functions or a separate backend for API calls to keep your API keys secure
 
 ## Getting Started
 

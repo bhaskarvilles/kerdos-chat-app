@@ -6,15 +6,30 @@
   :root {
     --background: 255 255 255;
     --foreground: 15 23 42;
+    --primary: 16 185 129; /* Emerald-500 */
+    --primary-light: 167 243 208; /* Emerald-200 */
+    --primary-dark: 5 150 105; /* Emerald-600 */
+    --secondary: 20 184 166; /* Teal-500 */
+    --secondary-light: 153 246 228; /* Teal-200 */
+    --secondary-dark: 13 148 136; /* Teal-600 */
+    --accent: 52 211 153; /* Green-400 */
   }
 
   .dark {
     --background: 15 23 42;
     --foreground: 255 255 255;
+    --primary: 5 150 105; /* Emerald-600 */
+    --primary-light: 16 185 129; /* Emerald-500 */
+    --primary-dark: 4 120 87; /* Emerald-700 */
+    --secondary: 13 148 136; /* Teal-600 */
+    --secondary-light: 20 184 166; /* Teal-500 */
+    --secondary-dark: 15 118 110; /* Teal-700 */
+    --accent: 34 197 94; /* Green-500 */
   }
 
   body {
     @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))];
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
@@ -25,35 +40,7 @@
   transition-duration: 200ms;
 }
 
-@layer components {
-  .chat-container {
-    @apply flex h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 
-           dark:from-gray-900 dark:via-gray-800 dark:to-gray-900;
-  }
-
-  .chat-header {
-    @apply h-16 flex items-center justify-between px-6 
-           bg-white/80 dark:bg-gray-800/90 backdrop-blur-md 
-           border-b border-gray-200/50 dark:border-gray-700/50 
-           shadow-sm transition-colors duration-200;
-  }
-
-  .chat-content {
-    @apply flex-1 flex flex-col bg-white/50 dark:bg-gray-800/50 
-           transition-colors duration-200;
-  }
-
-  .message-input-container {
-    @apply border-t border-gray-200/50 dark:border-gray-700/50 
-           bg-white/80 dark:bg-gray-800/90 backdrop-blur-md 
-           transition-colors duration-200;
-  }
-
-  .animate-slide-up {
-    @apply transform transition-all duration-300 ease-out;
-  }
-}
-
+/* Animation Keyframes */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -65,23 +52,196 @@
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.8;
+    transform: scale(0.98);
   }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation Classes */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.4s ease-out forwards;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-out forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.3s ease-out forwards;
 }
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Staggered animations for lists */
+.stagger-animation > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-animation > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-animation > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-animation > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-animation > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-animation > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-animation > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-animation > *:nth-child(8) { animation-delay: 0.4s; }
+.stagger-animation > *:nth-child(9) { animation-delay: 0.45s; }
+.stagger-animation > *:nth-child(10) { animation-delay: 0.5s; }
+
+/* Component Styles */
+@layer components {
+  .chat-container {
+    @apply flex h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-green-100 
+           dark:from-emerald-950 dark:via-teal-950 dark:to-green-900;
+  }
+
+  .chat-header {
+    @apply h-16 flex items-center justify-between px-6 
+           bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+           border-b border-emerald-200/50 dark:border-emerald-800/50 
+           shadow-sm transition-colors duration-200;
+  }
+
+  .chat-content {
+    @apply flex-1 flex flex-col bg-white/50 dark:bg-gray-900/50 
+           transition-colors duration-200;
+  }
+
+  .message-input-container {
+    @apply border-t border-emerald-200/50 dark:border-emerald-800/50 
+           bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+           transition-colors duration-200;
+  }
+
+  /* Button hover effects */
+  .btn-hover-effect {
+    @apply transition-all duration-200 hover:shadow-md active:scale-95;
+  }
+
+  /* Card hover effects */
+  .card-hover-effect {
+    @apply transition-all duration-300 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99];
+  }
+
+  /* Glass effect */
+  .glass-effect {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-md;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600
+           text-white font-medium py-2 px-4 rounded-lg shadow-md hover:shadow-lg
+           transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400
+           border border-emerald-300 dark:border-emerald-700 font-medium
+           py-2 px-4 rounded-lg shadow-sm hover:shadow-md hover:bg-emerald-50 dark:hover:bg-gray-700
+           transition-all duration-200;
+  }
+}
+
+/* Scrollbar Styles */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
@@ -103,6 +263,29 @@
   background: #22c55e;
 }
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(52, 211, 153, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(52, 211, 153, 0.5);
+  border-radius: 3px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(16, 185, 129, 0.5);
+}
+
+/* Responsive Font Sizes */
 @media (max-width: 640px) {
   html {
     font-size: 14px;
@@ -149,46 +332,43 @@
   animation-duration: 0.001ms !important;
 }
 
-/* Custom scrollbar for webkit browsers */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Mobile-specific styles */
 @media (max-width: 640px) {
   .chat-interface {
-    height: calc(100vh - 56px); /* Adjust based on your header height */
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100); /* Dynamic viewport height */
   }
 
   .chat-window {
-    height: calc(100vh - 56px - 80px); /* Adjust based on your header and input heights */
+    height: calc(100vh - 120px);
+    height: calc(var(--vh, 1vh) * 100 - 120px);
   }
 
   .message-input {
-    position: fixed;
+    position: sticky;
     bottom: 0;
     left: 0;
     right: 0;
     background-color: white;
+    z-index: 10;
+  }
+  
+  /* Improve touch targets */
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text zoom on input focus */
+  input, select, textarea {
+    font-size: 16px;
   }
 }
 
 /* Ensure the app takes up the full viewport height */
 #root {
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   display: flex;
   flex-direction: column;
 }
@@ -209,24 +389,44 @@
   }
 }
 
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+/* Add dynamic viewport height calculation for mobile browsers */
+:root {
+  --vh: 1vh;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+/* Add support for safe areas on modern mobile devices */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-inset-top {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* Add smooth transitions for all interactive elements */
+button, a, input, select, textarea {
+  transition: all 0.2s ease;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
+/* Add subtle hover effects for buttons */
+button:not(:disabled):hover, 
+a:hover {
+  transform: translateY(-1px);
 }
 
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(75, 85, 99, 0.5);
+button:not(:disabled):active, 
+a:active {
+  transform: translateY(1px);
+}
+
+/* Add focus styles for accessibility */
+button:focus-visible, 
+a:focus-visible, 
+input:focus-visible, 
+select:focus-visible, 
+textarea:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
 }

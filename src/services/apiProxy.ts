@@ -18,8 +18,8 @@ interface ChatCompletionRequest {
   max_tokens?: number;
 }
 
-// Get the API proxy URL from environment variables or use a default
-const API_PROXY_URL = import.meta.env.VITE_API_PROXY_URL || '/api';
+// Backend service URL
+const BACKEND_SERVICE_URL = 'https://openai-chat-backend-gbuu.onrender.com';
 
 /**
  * Track message usage for subscription limits
@@ -27,7 +27,7 @@ const API_PROXY_URL = import.meta.env.VITE_API_PROXY_URL || '/api';
  */
 export const trackMessageUsage = async (username: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_PROXY_URL}/usage/track`, {
+    const response = await fetch(`${BACKEND_SERVICE_URL}/api/usage/track`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,13 +45,13 @@ export const trackMessageUsage = async (username: string): Promise<void> => {
 };
 
 /**
- * Fetch chat completion from the proxy service
- * In a production environment, this would call your backend API
- * which would then forward the request to OpenAI
+ * Fetch chat completion from the backend service
  */
 export const fetchChatCompletion = async (request: ChatCompletionRequest): Promise<string> => {
   try {
-    const response = await fetch(`${API_PROXY_URL}/chat`, {
+    console.log('Sending request to backend service:', request);
+    
+    const response = await fetch(`${BACKEND_SERVICE_URL}/api/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export const fetchChatCompletion = async (request: ChatCompletionRequest): Promi
     }
     
     const data = await response.json();
-    return data.message || 'Sorry, I could not generate a response.';
+    return data.message || data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
   } catch (error) {
     console.error('Error fetching chat completion:', error);
     throw error;

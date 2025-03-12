@@ -20,133 +20,139 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <div 
-      className={`flex flex-col h-full bg-white dark:bg-gray-900 border-r border-gray-200/50 dark:border-gray-700/50 
+      className={`flex flex-col h-full bg-white dark:bg-gray-900 border-r border-emerald-200/50 dark:border-emerald-800/50 
         transition-[width] duration-300 ease-in-out ${className}`}
       style={{ width: isCollapsed ? '5rem' : '20rem' }}
     >
       {/* Enhanced Header with User Profile */}
-      <div className="flex flex-col border-b border-gray-200/50 dark:border-gray-700/50">
+      <div className="flex flex-col border-b border-emerald-200/50 dark:border-emerald-800/50">
         <div className="flex items-center justify-between p-4">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
                 <User className="w-6 h-6 text-white/90 stroke-[1.5]" />
               </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-500 to-fuchsia-500 text-transparent bg-clip-text">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-transparent bg-clip-text">
                 Kerdos AI Chat
               </h1>
             </div>
           )}
           <button
             onClick={onToggleCollapse}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all duration-200 
+            className="p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-all duration-200 
               hover:scale-105 active:scale-95"
             title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isCollapsed ? 
-              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300 stroke-[1.5]" /> : 
-              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 stroke-[1.5]" />
+              <ChevronRight className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.5]" /> : 
+              <ChevronLeft className="w-5 h-5 text-emerald-600 dark:text-emerald-400 stroke-[1.5]" />
             }
           </button>
         </div>
       </div>
 
-      {/* Enhanced New Chat Button */}
-      <div className="p-3">
+      {/* New Chat Button */}
+      <div className="p-4">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 
-            bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 
-            text-white rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-98
-            shadow-md hover:shadow-lg"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl
+            bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600
+            text-white transition-all duration-200 shadow-md hover:shadow-lg
+            transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          <MessageSquarePlus className="w-5 h-5 stroke-[1.5]" />
-          {!isCollapsed && <span className="font-medium">New Chat</span>}
+          <MessageSquarePlus className="w-5 h-5" />
+          {!isCollapsed && <span>New Chat</span>}
         </button>
       </div>
 
-      {/* Enhanced Chat List */}
-      <div className="flex-1 overflow-y-auto px-3 custom-scrollbar">
-        <div className="space-y-1">
+      {/* Chat List */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="p-2 space-y-1">
           {chats.map((chat) => (
-            <div
+            <button
               key={chat.id}
-              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer 
-                transition-all duration-200 ${
-                chat.id === activeChat
-                  ? 'bg-gradient-to-r from-violet-500/90 to-fuchsia-500/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800/70'
-              }`}
               onClick={() => onChatSelect(chat.id)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200
+                ${activeChat === chat.id 
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200' 
+                  : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-700 dark:text-gray-300'
+                }
+              `}
             >
-              <div className="flex items-center space-x-3 min-w-0">
-                <MessageCircle className={`w-4 h-4 flex-shrink-0 stroke-[1.5] ${
-                  chat.id === activeChat ? 'text-white' : 'text-gray-400 dark:text-gray-500'
-                }`} />
-                <span className={`truncate ${isCollapsed ? 'w-0' : 'w-full'} ${
-                  chat.id === activeChat ? 'text-white font-medium' : 'text-gray-700 dark:text-gray-300'
-                }`}>
-                  {!isCollapsed && chat.name}
-                </span>
-              </div>
-              {!isCollapsed && chat.id === activeChat && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeleteChat(chat.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white/20 rounded-lg 
-                    transition-all duration-200 active:scale-95"
-                  title="Delete chat"
-                >
-                  <Trash2 className="w-4 h-4 text-white stroke-[1.5]" />
-                </button>
+              <MessageCircle className={`w-5 h-5 ${
+                activeChat === chat.id 
+                  ? 'text-emerald-600 dark:text-emerald-400' 
+                  : 'text-gray-500 dark:text-gray-400'
+              }`} />
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 flex items-center justify-between">
+                  <span className="truncate">{chat.name}</span>
+                  {activeChat === chat.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteChat(chat.id);
+                      }}
+                      className="p-1 rounded-lg hover:bg-emerald-200/50 dark:hover:bg-emerald-800/50
+                        text-emerald-600 dark:text-emerald-400 opacity-0 group-hover:opacity-100
+                        transition-opacity"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               )}
-            </div>
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Enhanced Footer Actions */}
-      <div className="p-3 border-t border-gray-200/50 dark:border-gray-700/50">
-        <div className={`flex ${isCollapsed ? 'flex-col space-y-2' : 'items-center justify-evenly'}`}>
+      {/* Footer Actions */}
+      <div className="border-t border-emerald-200/50 dark:border-emerald-800/50 p-4">
+        <div className="flex flex-col gap-2">
           <button
-            onClick={onToggleTheme}
-            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
-              hover:scale-105 active:scale-95"
-            title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            onClick={onExportChat}
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20
+              text-gray-700 dark:text-gray-300 transition-colors"
           >
-            {theme === 'dark' ? 
-              <Sun className="w-5 h-5 text-amber-500 stroke-[1.5]" /> : 
-              <Moon className="w-5 h-5 text-blue-500 stroke-[1.5]" />
-            }
+            <Download className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            {!isCollapsed && <span>Export Chat</span>}
           </button>
           
           <button
-            onClick={onExportChat}
-            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
-              hover:scale-105 active:scale-95"
-            title="Export Chat"
+            onClick={onToggleTheme}
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20
+              text-gray-700 dark:text-gray-300 transition-colors"
           >
-            <Download className="w-5 h-5 text-emerald-500 dark:text-emerald-400 stroke-[1.5]" />
+            {theme === 'light' ? (
+              <>
+                <Moon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                {!isCollapsed && <span>Dark Mode</span>}
+              </>
+            ) : (
+              <>
+                <Sun className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                {!isCollapsed && <span>Light Mode</span>}
+              </>
+            )}
           </button>
           
           <button
             onClick={onOpenSettings}
-            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
-              hover:scale-105 active:scale-95"
-            title="Settings"
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20
+              text-gray-700 dark:text-gray-300 transition-colors"
           >
-            <Settings className="w-5 h-5 text-violet-500 dark:text-violet-400 stroke-[1.5]" />
+            <Settings className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            {!isCollapsed && <span>Settings</span>}
           </button>
           
           <button
             onClick={onSignOut}
-            className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200 
-              hover:scale-105 active:scale-95"
-            title="Sign Out"
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20
+              text-gray-700 dark:text-gray-300 transition-colors"
           >
-            <LogOut className="w-5 h-5 text-red-500 dark:text-red-400 stroke-[1.5]" />
+            <LogOut className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            {!isCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </div>
