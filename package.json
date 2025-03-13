@@ -70,6 +70,6 @@
     "terser": "^5.39.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
-    "vite": "^5.1.4"
+    "vite": "^6.2.1"
   }
 }
