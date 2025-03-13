@@ -14,21 +14,40 @@ import { canSendMessage, getRemainingMessages, formatTimeUntilReset, getTimeUnti
 import { trackMessageUsage } from '../services/apiProxy'
 import { useLocalStorage } from '../hooks/useLocalStorage'
 import { CHAT_STORAGE_KEY, USER_PREFERENCES_KEY, DEFAULT_USER_PREFERENCES, NEW_CHAT_NAME } from '../constants'
-import Toast from './Toast'
+import { showToast } from '@/components/Toast'
 import Sidebar from './Sidebar'
 import { jsPDF } from 'jspdf'
 import 'jspdf-autotable'
 import { exportToPDF } from '../utils/pdfUtils'
 import MessageBubble from './MessageBubble'
 import TypingIndicator from './TypingIndicator'
-import UserProfileComponent from './UserProfile'
+import UserProfilePage from './UserProfilePage'
 import SubscriptionInfo from './SubscriptionInfo'
+import { cn } from "@/lib/utils"
+import { debounce } from 'lodash'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 
 // Add the autoTable type to jsPDF
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: (options: any) => jsPDF;
   }
+}
+
+// Add missing types
+interface ChatWindowProps {
+  messages: Message[];
+  isLoading?: boolean;
+  preferences: UserPreferences;
+  className?: string;
+  onSendMessage?: (content: string) => Promise<void>;
+}
+
+interface UserSettingsProps {
+  preferences: UserPreferences;
+  onUpdate: (newPreferences: Partial<UserPreferences>) => void;
+  onClose: () => void;
+  isPaidUser: boolean;
 }
 
 const ChatInterface: React.FC = () => {
@@ -59,51 +78,76 @@ const ChatInterface: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const chatWindowRef = useRef<HTMLDivElement>(null)
   const { theme, toggleTheme } = useTheme()
-  const isDarkMode = theme === 'dark';
+  const isDarkMode = theme === 'dark'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+
+  // Memoize theme-dependent values
+  const themeClasses = useMemo(() => ({
+    container: "flex h-[calc(100vh-3rem)] overflow-hidden relative",
+    background: isDarkMode ? "bg-gray-900" : "bg-gray-50",
+    header: "flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-10 relative",
+    headerTitle: "text-lg sm:text-xl font-semibold text-gray-800 dark:text-white truncate max-w-[200px] sm:max-w-none",
+    mainContent: "flex flex-col flex-1 overflow-hidden relative z-10",
+    chatWindow: "flex-1 overflow-hidden relative",
+    messageInput: "p-2 sm:p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+  }), [isDarkMode])
+
+  // Debounced window resize handler
+  useEffect(() => {
+    const handleResize = debounce(() => {
+      const width = window.innerWidth
+      setIsMobile(width < 768)
+      if (width >= 768) {
+        setIsSidebarOpen(true)
+      }
+    }, 150)
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Load user profile and subscription data
   useEffect(() => {
     const loadUserData = async () => {
-      if (user) {
-        try {
-          // Load user profile
-          const { profile, error: profileError } = await getUserProfile(user.id);
-          if (profileError) {
-            console.error('Error loading user profile:', profileError);
-          } else {
-            setUserProfile(profile);
-          }
+      if (!user) return;
+      
+      try {
+        // Load user profile
+        const profileResult = await getUserProfile(user.id);
+        if (profileResult.error) {
+          console.error('Error loading user profile:', profileResult.error);
+        } else if (profileResult.profile) {
+          setUserProfile(profileResult.profile);
+        }
+        
+        // Load user subscription
+        const subscriptionResult = await getUserSubscription(user.id);
+        if (subscriptionResult.error) {
+          console.error('Error loading user subscription:', subscriptionResult.error);
+        } else if (subscriptionResult.subscription) {
+          setUserSubscription(subscriptionResult.subscription);
           
-          // Load user subscription
-          const { subscription, error: subscriptionError } = await getUserSubscription(user.id);
-          if (subscriptionError) {
-            console.error('Error loading user subscription:', subscriptionError);
-          } else {
-            setUserSubscription(subscription);
+          // Update subscription status
+          if (subscriptionResult.subscription) {
+            setIsPaidUser(subscriptionResult.subscription.tier === 'premium');
             
-            // Update subscription status
-            if (subscription) {
-              setIsPaidUser(subscription.tier === 'premium');
-              
-              // Check if user can send more messages
-              const canSend = subscription.tier === 'premium' || 
-                (subscription.message_count < 10); // Free tier limit
-              setCanSendMoreMessages(canSend);
-              
-              // Calculate remaining messages for free tier
-              if (subscription.tier === 'free') {
-                setRemainingMessages(10 - subscription.message_count);
-              } else {
-                setRemainingMessages(null); // Unlimited for premium
-              }
+            // Check if user can send more messages
+            const canSend = subscriptionResult.subscription.tier === 'premium' || 
+              (subscriptionResult.subscription.message_count < 10); // Free tier limit
+            setCanSendMoreMessages(canSend);
+            
+            // Calculate remaining messages for free tier
+            if (subscriptionResult.subscription.tier === 'free') {
+              setRemainingMessages(10 - subscriptionResult.subscription.message_count);
+            } else {
+              setRemainingMessages(null); // Unlimited for premium
             }
           }
-        } catch (err) {
-          console.error('Error loading user data:', err);
-          setError('Failed to load user data. Please try again later.');
         }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+        setError('Failed to load user data. Please try again later.');
       }
     };
     
@@ -280,7 +324,7 @@ const ChatInterface: React.FC = () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        setToastMessage('Chat exported successfully as text file');
+        showToast('Chat exported successfully as text file', 'success');
       } else {
         // Export as PDF
         try {
@@ -293,21 +337,21 @@ const ChatInterface: React.FC = () => {
             new Date(msg.timestamp).toLocaleString()
           ]);
           
-          // Export to PDF using the utility function
-          await exportToPDF({
-            filename: `${currentChat.name.replace(/\s+/g, '_')}.pdf`,
+          // Update the exportToPDF call with correct arguments
+          await exportToPDF(
+            `${currentChat.name.replace(/\s+/g, '_')}.pdf`,
             title,
             headers,
             data,
-            options: {
+            {
               fontSize: userPreferences.fontSize === 'large' ? 12 : 
                       userPreferences.fontSize === 'small' ? 8 : 10,
               theme: isDarkMode ? 'grid' : 'striped',
               addPageNumbers: true
             }
-          });
+          );
           
-          setToastMessage('Chat exported successfully as PDF');
+          showToast('Chat exported successfully as PDF', 'success');
         } catch (error) {
           console.error('Error exporting to PDF:', error);
           
@@ -331,7 +375,7 @@ const ChatInterface: React.FC = () => {
           });
           
           doc.save(`${currentChat.name.replace(/\s+/g, '_')}.pdf`);
-          setToastMessage('Chat exported successfully as PDF (fallback mode)');
+          showToast('Chat exported successfully as PDF (fallback mode)', 'success');
         }
       }
     } catch (error) {
@@ -339,7 +383,7 @@ const ChatInterface: React.FC = () => {
       setError('Failed to export chat. Please try again.');
     }
     setIsExporting(false);
-  }, [activeChat, chats, isDarkMode, userPreferences.fontSize, setToastMessage]);
+  }, [activeChat, chats, isDarkMode, userPreferences.fontSize]);
 
   // Handle preference updates
   const handleUpdatePreferences = useCallback((newPreferences: Partial<UserPreferences>) => {
@@ -362,12 +406,25 @@ const ChatInterface: React.FC = () => {
         throw new Error(error.message);
       }
       
-      setToastMessage('Profile updated successfully');
+      showToast('Profile updated successfully', 'success');
     } catch (err) {
       console.error('Error updating profile:', err);
       setError('Failed to update profile. Please try again.');
     }
   }, [userProfile, user]);
+
+  // Update error handling to use toast
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'error');
+      setError(null);
+    }
+  }, [error]);
+
+  // Update success messages to use toast
+  const handleSuccess = (message: string) => {
+    showToast(message, 'success');
+  };
 
   // Show loading state
   if (!userProfile && user) {
@@ -382,7 +439,7 @@ const ChatInterface: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+    <div className={cn(themeClasses.container, themeClasses.background)}>
       {/* Sidebar */}
       <Sidebar
         chats={chats}
@@ -404,27 +461,19 @@ const ChatInterface: React.FC = () => {
       />
       
       {/* Main content */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className={themeClasses.mainContent}>
         {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
-            {isMobile && (
-              <button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="mr-4 p-2 rounded-md text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
-              >
-                <Menu size={20} />
-              </button>
-            )}
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-white truncate">
+        <header className={themeClasses.header}>
+          <div className="flex items-center space-x-2">
+            <h1 className={themeClasses.headerTitle}>
               {getCurrentChatName()}
             </h1>
           </div>
           
           <div className="flex items-center space-x-2">
             {isUsingMockService && (
-              <div className="px-4 py-2 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-500 text-yellow-800 dark:text-yellow-300 text-sm rounded-md flex items-center space-x-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <div className="hidden sm:flex px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-500 text-yellow-800 dark:text-yellow-300 text-xs sm:text-sm rounded-md items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
                 <span><strong>Demo Mode</strong></span>
@@ -432,16 +481,16 @@ const ChatInterface: React.FC = () => {
             )}
             <button
               onClick={() => setIsProfileOpen(true)}
-              className="p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+              className="p-1.5 sm:p-2 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
               aria-label="User profile"
             >
-              <UserIcon size={20} />
+              <UserIcon size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
         </header>
         
         {/* Chat window */}
-        <div className="flex-1 overflow-hidden">
+        <div className={themeClasses.chatWindow}>
           <ChatWindow
             messages={getCurrentChatMessages()}
             onSendMessage={handleSendMessage}
@@ -451,7 +500,7 @@ const ChatInterface: React.FC = () => {
         </div>
         
         {/* Message input */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className={themeClasses.messageInput}>
           <MessageInput onSendMessage={handleSendMessage} />
         </div>
       </div>
@@ -462,46 +511,37 @@ const ChatInterface: React.FC = () => {
           preferences={userPreferences}
           onUpdate={handleUpdatePreferences}
           onClose={() => setIsSettingsOpen(false)}
+          isPaidUser={isPaidUser}
         />
       )}
       
       {/* User profile modal */}
       {isProfileOpen && userProfile && (
-        <UserProfileComponent
-          user={{
-            username: userProfile.username || user?.email?.split('@')[0] || 'User',
-            email: user?.email,
-            joinDate: userProfile.created_at ? new Date(userProfile.created_at) : undefined,
-            expirationTime: userSubscription?.expires_at ? new Date(userSubscription.expires_at).getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
-            preferences: userProfile.preferences,
-            subscription: userSubscription ? {
-              tier: userSubscription.tier,
-              expiresAt: userSubscription.expires_at ? new Date(userSubscription.expires_at).getTime() : undefined,
-              messageCount: userSubscription.message_count,
-              lastResetTime: new Date(userSubscription.last_reset_time).getTime()
-            } : undefined
-          }}
-          onClose={() => setIsProfileOpen(false)}
-          onUpdateProfile={handleUpdateProfile}
-        />
-      )}
-      
-      {/* Toast for notifications */}
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          onClose={() => setToastMessage(null)}
-          type="info"
-        />
-      )}
-      
-      {/* Error toast */}
-      {error && (
-        <Toast
-          message={error}
-          onClose={() => setError(null)}
-          type="error"
-        />
+        <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+          <DialogContent className="max-w-4xl p-0">
+            <UserProfilePage
+              user={{
+                username: userProfile.username || user?.email?.split('@')[0] || 'User',
+                email: user?.email || '',
+                joinDate: userProfile.created_at ? new Date(userProfile.created_at) : undefined,
+                expirationTime: userSubscription?.expires_at ? new Date(userSubscription.expires_at).getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
+                preferences: userProfile.preferences,
+                subscription: userSubscription ? {
+                  tier: userSubscription.tier,
+                  expiresAt: userSubscription.expires_at ? new Date(userSubscription.expires_at).getTime() : undefined,
+                  messageCount: userSubscription.message_count,
+                  lastResetTime: new Date(userSubscription.last_reset_time).getTime()
+                } : undefined
+              }}
+              onUpdateProfile={handleUpdateProfile}
+              onSignOut={handleSignOut}
+              onOpenSettings={() => {
+                setIsProfileOpen(false);
+                setIsSettingsOpen(true);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

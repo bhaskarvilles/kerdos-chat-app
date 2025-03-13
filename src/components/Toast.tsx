@@ -1,31 +1,28 @@
-import React, { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { toast } from "sonner";
 
-interface ToastProps {
-  message: string
-  type: 'error' | 'success' | 'info'
-  onClose: () => void
-}
+// Instead of a component, we'll export functions to show toasts
+export const showToast = (message: string, type: 'default' | 'success' | 'error' | 'info' = 'default') => {
+  switch (type) {
+    case 'success':
+      toast.success(message);
+      break;
+    case 'error':
+      toast.error(message);
+      break;
+    case 'info':
+      toast.info(message);
+      break;
+    default:
+      toast(message);
+  }
+};
 
-const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose()
-    }, 5000)
+export const showLoadingToast = (message: string) => {
+  return toast.loading(message);
+};
 
-    return () => clearTimeout(timer)
-  }, [onClose])
-
-  const bgColor = type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'
-
-  return (
-    <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg flex items-center`}>
-      <span>{message}</span>
-      <button onClick={onClose} className="ml-2">
-        <X size={18} />
-      </button>
-    </div>
-  )
-}
-
-export default Toast
+export const dismissToast = (toastId?: string) => {
+  if (toastId) {
+    toast.dismiss(toastId);
+  }
+};

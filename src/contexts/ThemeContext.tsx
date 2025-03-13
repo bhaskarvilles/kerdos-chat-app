@@ -1,45 +1,39 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-
-type Theme = 'light' | 'dark'
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react'
+import { useLocalStorage } from '../hooks/useLocalStorage'
 
 interface ThemeContextType {
-  theme: Theme
+  theme: string
   toggleTheme: () => void
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme) return savedTheme
-    
-    // Then check system preference
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark'
-    }
-    return 'light'
-  })
+  const [theme, setTheme] = useLocalStorage('theme', 'light')
+  const rootRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    // Update localStorage
-    localStorage.setItem('theme', theme)
-    
-    // Update document class
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    rootRef.current = document.documentElement
+  }, [])
+
+  useEffect(() => {
+    if (rootRef.current) {
+      rootRef.current.classList.remove('light', 'dark')
+      rootRef.current.classList.add(theme)
     }
   }, [theme])
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light')
-  }
+  const toggleTheme = useCallback(() => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light')
+  }, [setTheme])
+
+  const value = useMemo(() => ({
+    theme,
+    toggleTheme
+  }), [theme, toggleTheme])
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   )

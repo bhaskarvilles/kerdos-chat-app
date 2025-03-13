@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { X, Moon, Sun, Save, Eye, EyeOff } from 'lucide-react'
 import { UserPreferences } from '../types'
+import { debounce } from 'lodash'
 
 interface UserSettingsProps {
   preferences: UserPreferences;
-  onUpdatePreferences: (newPreferences: Partial<UserPreferences>) => void;
+  onUpdate: (newPreferences: Partial<UserPreferences>) => void;
   onClose: () => void;
   isPaidUser?: boolean;
   className?: string;
@@ -12,13 +13,29 @@ interface UserSettingsProps {
 
 const UserSettings: React.FC<UserSettingsProps> = ({ 
   preferences, 
-  onUpdatePreferences, 
+  onUpdate, 
   onClose, 
   isPaidUser = false,
   className = ''
 }) => {
+  const [localPreferences, setLocalPreferences] = useState(preferences)
   const [isDirty, setIsDirty] = useState(false)
-  const [localPreferences, setLocalPreferences] = useState<UserPreferences>(preferences)
+  const [notificationSupported, setNotificationSupported] = useState(false)
+  const debouncedUpdate = useCallback(
+    debounce((newPreferences: Partial<UserPreferences>) => {
+      onUpdate(newPreferences)
+    }, 150),
+    [onUpdate]
+  )
+
+  // Check for notification support
+  useEffect(() => {
+    const checkNotificationSupport = () => {
+      const supported = 'Notification' in window && 'serviceWorker' in navigator;
+      setNotificationSupported(supported);
+    };
+    checkNotificationSupport();
+  }, []);
 
   // Handle escape key
   useEffect(() => {
@@ -32,24 +49,23 @@ const UserSettings: React.FC<UserSettingsProps> = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
-  // Update local preferences when props change
   useEffect(() => {
-    setLocalPreferences(preferences);
-  }, [preferences]);
+    setLocalPreferences(preferences)
+    setIsDirty(false)
+  }, [preferences])
+
+  const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
+    const newPreferences = { ...localPreferences, [key]: value }
+    setLocalPreferences(newPreferences)
+    setIsDirty(true)
+    debouncedUpdate(newPreferences)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onUpdatePreferences(localPreferences);
-    setIsDirty(false);
-  };
-
-  const handlePreferenceChange = <K extends keyof UserPreferences>(
-    key: K,
-    value: UserPreferences[K]
-  ) => {
-    setLocalPreferences(prev => ({ ...prev, [key]: value }));
-    setIsDirty(true);
-  };
+    e.preventDefault()
+    onUpdate(localPreferences)
+    setIsDirty(false)
+  }
 
   return (
     <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${className}`}>
@@ -179,7 +195,7 @@ const UserSettings: React.FC<UserSettingsProps> = ({
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
             
-            {window.isNotificationSupported ? (
+            {notificationSupported ? (
               <>
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -235,10 +251,8 @@ const UserSettings: React.FC<UserSettingsProps> = ({
                 )}
               </>
             ) : (
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl animate-fadeIn">
-                <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                  Notifications are not supported on this device or browser.
-                </p>
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Notifications are not supported in your browser.
               </div>
             )}
           </div>
@@ -306,15 +320,19 @@ const UserSettings: React.FC<UserSettingsProps> = ({
           </div>
           
           {/* Save Button */}
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-4 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={!isDirty}
-              className={`flex items-center space-x-2 px-6 py-2 rounded-xl 
-                ${isDirty 
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                } transition-colors`}
+              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 
+                disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
             >
               <Save size={18} />
               <span>Save Changes</span>

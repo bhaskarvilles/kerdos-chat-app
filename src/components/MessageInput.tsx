@@ -1,5 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Send, Paperclip, Mic, Hash, Image, Plus } from 'lucide-react'
+import { Send, Paperclip, Mic, Hash, Image, Plus, Wrench } from 'lucide-react'
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { Card } from "./ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { ScrollArea } from "./ui/scroll-area"
+import { cn } from "@/lib/utils"
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>
@@ -20,18 +27,8 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const [isRecording, setIsRecording] = useState(false)
   const [showTools, setShowTools] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const toolsRef = useRef<HTMLDivElement>(null)
-
-  // Handle click outside tools menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (toolsRef.current && !toolsRef.current.contains(event.target as Node)) {
-        setShowTools(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-resize textarea
   useEffect(() => {
@@ -41,21 +38,25 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }, [message])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (message.trim() && !disabled) {
+    
+    if (!message.trim() || isSubmitting) return
+    
+    try {
+      setIsSubmitting(true)
       await onSendMessage(message.trim())
       setMessage('')
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-      }
+    } finally {
+      setIsSubmitting(false)
+      textareaRef.current?.focus()
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>)
     }
   }
 
@@ -66,115 +67,110 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   }
 
-  return (
-    <form 
-      onSubmit={handleSubmit} 
-      className={`relative max-w-3xl mx-auto ${className}`}
-    >
-      {/* Tools Menu */}
-      {showTools && (
-        <div 
-          ref={toolsRef}
-          className="absolute bottom-full mb-2 left-0 bg-white dark:bg-gray-800 
-            rounded-lg shadow-lg border border-emerald-200 dark:border-emerald-800 p-2"
-        >
-          <div className="flex flex-col gap-1">
-            <button 
-              type="button"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 
-                dark:hover:bg-emerald-900/20 rounded-md text-sm text-gray-700 dark:text-gray-300"
-            >
-              <Hash className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span>Web Search</span>
-            </button>
-            <button 
-              type="button"
-              className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 
-                dark:hover:bg-emerald-900/20 rounded-md text-sm text-gray-700 dark:text-gray-300"
-            >
-              <Image className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-              <span>Generate Image</span>
-            </button>
-          </div>
-        </div>
-      )}
+  const handleVoiceInput = () => {
+    setIsRecording(!isRecording)
+  }
 
-      <div className="flex items-end space-x-2 p-4">
-        {/* Tools Button */}
-        <button
-          type="button"
-          onClick={() => setShowTools(!showTools)}
-          className="p-2 text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300
-            hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-        </button>
+  return (
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="flex items-end gap-2">
+        {/* Tools button */}
+        <Popover open={showTools} onOpenChange={setShowTools}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 sm:h-10 sm:w-10"
+            >
+              <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2">
+            <div className="space-y-1">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={() => {
+                  setShowTools(false);
+                  // Add your tool action here
+                }}
+              >
+                <Wrench className="h-4 w-4" />
+                Tool 1
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2"
+                onClick={() => {
+                  setShowTools(false);
+                  // Add your tool action here
+                }}
+              >
+                <Wrench className="h-4 w-4" />
+                Tool 2
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* File attachment button */}
-        <label className="cursor-pointer p-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-colors">
-          <input
-            type="file"
-            className="hidden"
-            onChange={handleFileChange}
-            accept="image/*,.pdf,.doc,.docx"
-          />
-          <Paperclip className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
-        </label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 sm:h-10 sm:w-10"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Paperclip className="h-4 w-4 sm:h-5 sm:w-5" />
+        </Button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".txt,.pdf,.doc,.docx"
+        />
 
         {/* Message input */}
-        <div className="relative flex-1">
-          <textarea
+        <div className="flex-1 relative">
+          <Textarea
             ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Message AI Assistant..."
-            className="w-full p-4 pr-24 rounded-lg border border-emerald-200 dark:border-emerald-800 
-              focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500
-              resize-none bg-white dark:bg-gray-800"
+            placeholder="Type your message..."
+            className="min-h-[40px] max-h-[200px] pr-12 py-2 text-sm sm:text-base resize-none"
             rows={1}
-            disabled={disabled}
           />
-          <button
-            type="submit"
-            disabled={!message.trim() || disabled}
-            className="absolute right-2 bottom-2 p-2 rounded-lg 
-              bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white
-              disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            <Send size={20} />
-          </button>
+          <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">
+              {message.length}/4000
+            </span>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-6 w-6 sm:h-8 sm:w-8"
+              disabled={isSubmitting || !message.trim()}
+            >
+              <Send className="h-3 w-3 sm:h-4 sm:w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Voice input button */}
-        <button
+        <Button
           type="button"
-          onClick={() => setIsRecording(!isRecording)}
-          className={`p-2 rounded-xl transition-all duration-200 ${
-            isRecording 
-              ? 'bg-red-500 text-white animate-pulse'
-              : 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-500 dark:text-emerald-400'
-          }`}
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-8 w-8 sm:h-10 sm:w-10",
+            isRecording && "text-red-500"
+          )}
+          onClick={handleVoiceInput}
         >
-          <Mic className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Keyboard shortcuts */}
-      <div className="px-4 pb-3 flex items-center justify-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-        <div className="flex items-center space-x-1">
-          <kbd className="px-2 py-1 font-medium bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
-            Enter
-          </kbd>
-          <span>to send</span>
-        </div>
-        <span>•</span>
-        <div className="flex items-center space-x-1">
-          <kbd className="px-2 py-1 font-medium bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/30">
-            Shift + Enter
-          </kbd>
-          <span>for new line</span>
-        </div>
+          <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
+        </Button>
       </div>
     </form>
   )
