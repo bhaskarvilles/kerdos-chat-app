@@ -13,8 +13,6 @@ export default defineConfig({
     },
     rollupOptions: {
       external: [
-        'react',
-        'react-dom',
         '@supabase/supabase-js',
         'openai',
         'jspdf',
