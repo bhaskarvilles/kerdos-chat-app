@@ -14,14 +14,13 @@ export default defineConfig({
     rollupOptions: {
       external: [
         '@supabase/supabase-js',
-        'openai',
-        'jspdf',
-        'jspdf-autotable'
+        'openai'
       ],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
           ui: ['framer-motion', 'styled-components', 'lucide-react'],
+          pdf: ['jspdf', 'jspdf-autotable'],
           radix: [
             '@radix-ui/react-label',
             '@radix-ui/react-dialog',
