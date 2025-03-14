@@ -1,0 +1,25 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18.20.4"
+  NPM_VERSION = "9.8.1"
+  CI = "true"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.lifecycle]
+  onPreBuild = """
+    npm install -g npm@9.8.1
+    rm -rf package-lock.json node_modules
+    npm install
+    npm install rollup@latest @rollup/plugin-node-resolve@latest @rollup/plugin-commonjs@latest
+    npm list rollup
+    npm list vite
+    node -v
+    npm -v
+  """
