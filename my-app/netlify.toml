@@ -1,5 +1,6 @@
 [build]
-  command = "npm run build"
+  base = "my-app"
+  command = "npm ci --legacy-peer-deps && npm run build"
   publish = ".next"
 
 [build.environment]
