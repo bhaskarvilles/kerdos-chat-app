@@ -26,7 +26,7 @@ export default function SignUpPage() {
     try {
       await signUp(email, password, name);
       router.push('/');
-    } catch (error) {
+    } catch (_error) {
       setError('Failed to create account');
     } finally {
       setLoading(false);
@@ -40,7 +40,7 @@ export default function SignUpPage() {
     try {
       await signInWithGoogle();
       router.push('/');
-    } catch (error) {
+    } catch (_error) {
       setError('Failed to sign up with Google');
     } finally {
       setLoading(false);

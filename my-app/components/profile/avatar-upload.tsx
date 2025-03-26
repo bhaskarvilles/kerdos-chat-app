@@ -2,9 +2,8 @@
 
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { doc, updateDoc } from "firebase/firestore"

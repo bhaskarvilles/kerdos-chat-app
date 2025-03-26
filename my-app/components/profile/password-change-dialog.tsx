@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
 import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "firebase/auth"
+import { useAuth } from '@/contexts/auth-context'
 
 interface PasswordChangeDialogProps {
   isOpen: boolean
@@ -99,6 +100,15 @@ export function PasswordChangeDialog({
       setIsLoading(false)
     }
   }
+
+  const handleError = (error: Error) => {
+    console.error('Password change error:', error);
+    toast({
+      variant: 'destructive',
+      title: 'Error',
+      description: 'Failed to change password. Please try again.',
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>

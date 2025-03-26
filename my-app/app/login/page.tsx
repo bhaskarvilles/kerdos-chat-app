@@ -25,8 +25,8 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
       router.push('/');
-    } catch (error) {
-      setError('Invalid email or password');
+    } catch (_error) {
+      setError('Invalid email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -39,8 +39,8 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
       router.push('/');
-    } catch (error) {
-      setError('Failed to sign in with Google');
+    } catch (_error) {
+      setError('Failed to sign in with Google. Please try again.');
     } finally {
       setLoading(false);
     }
