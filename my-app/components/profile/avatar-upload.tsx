@@ -2,33 +2,30 @@
 
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Camera } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 import { doc, updateDoc } from "firebase/firestore"
 import { db, storage } from "@/lib/firebase"
-import { Camera, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { User } from "@/app/types/chat"
 
 interface AvatarUploadProps {
-  userId: string
-  currentAvatar?: string
-  currentName: string
-  onAvatarUpdate: (newAvatarUrl: string) => void
+  className?: string
 }
 
-export function AvatarUpload({
-  userId,
-  currentAvatar,
-  currentName,
-  onAvatarUpdate,
-}: AvatarUploadProps) {
-  const [isUploading, setIsUploading] = useState(false)
+export function AvatarUpload({ className }: AvatarUploadProps) {
+  const { user, setUser } = useAuth()
   const { toast } = useToast()
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !user?.id) return
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
@@ -50,35 +47,36 @@ export function AvatarUpload({
       return
     }
 
+    setIsUploading(true)
+
     try {
-      setIsUploading(true)
-      const timestamp = Date.now()
-      const storageRef = ref(storage, `avatars/${userId}/${timestamp}_${file.name}`)
-      
-      // Upload file
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file)
+      setPreviewUrl(previewUrl)
+
+      // Upload to Firebase Storage
+      const storageRef = ref(storage, `avatars/${user.id}/${Date.now()}_${file.name}`)
       await uploadBytes(storageRef, file)
-      
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef)
-      
+      const downloadUrl = await getDownloadURL(storageRef)
+
       // Update user document in Firestore
-      const userRef = doc(db, 'users', userId)
+      const userRef = doc(db, 'users', user.id)
       await updateDoc(userRef, {
-        avatar: downloadURL
+        avatar: downloadUrl,
       })
 
       // Update local state
-      onAvatarUpdate(downloadURL)
+      setUser((prev: User | null) => prev ? { ...prev, avatar: downloadUrl } : null)
 
       toast({
-        title: 'Success',
-        description: 'Profile picture updated successfully.',
+        title: 'Avatar updated',
+        description: 'Your profile picture has been updated successfully.',
       })
     } catch (error) {
       console.error('Error uploading avatar:', error)
       toast({
         title: 'Error',
-        description: 'Failed to upload profile picture. Please try again.',
+        description: 'Failed to upload avatar. Please try again.',
         variant: 'destructive',
       })
     } finally {
@@ -87,23 +85,16 @@ export function AvatarUpload({
   }
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <div className="relative">
+    <div className={className}>
+      <div className="relative group">
         <Avatar className="h-24 w-24">
-          <AvatarImage src={currentAvatar} />
-          <AvatarFallback>{currentName[0]}</AvatarFallback>
+          <AvatarImage src={previewUrl || user?.avatar || undefined} />
+          <AvatarFallback>{user?.name?.[0] || '?'}</AvatarFallback>
         </Avatar>
-        <Label
-          htmlFor="avatar-upload"
-          className={`absolute bottom-0 right-0 bg-background border rounded-full p-1.5 cursor-pointer hover:bg-accent ${
-            isUploading ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-        >
-          {isUploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Camera className="h-4 w-4" />
-          )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+          <Label htmlFor="avatar-upload" className="cursor-pointer">
+            <Camera className="h-6 w-6 text-white" />
+          </Label>
           <Input
             id="avatar-upload"
             type="file"
@@ -112,11 +103,11 @@ export function AvatarUpload({
             onChange={handleAvatarUpload}
             disabled={isUploading}
           />
-        </Label>
+        </div>
       </div>
-      <p className="text-sm text-muted-foreground">
-        {isUploading ? 'Uploading...' : 'Click the camera icon to upload a new profile picture'}
-      </p>
+      {isUploading && (
+        <p className="text-sm text-muted-foreground mt-2">Uploading...</p>
+      )}
     </div>
   )
 } 

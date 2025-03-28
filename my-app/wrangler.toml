@@ -1,0 +1,26 @@
+name = "kerdos-chat"
+main = "workers/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "production"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "kerdos-chat-assets"
+preview_bucket_name = "kerdos-chat-assets-dev"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "kerdos-chat-db"
+database_id = "c0b88721-4bca-4802-aabd-e95e85b67b74"
+
+kv_namespaces = [
+  { binding = "KV", id = "" } # Add your KV namespace ID here
+]
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.development]
+vars = { ENVIRONMENT = "development" } 
